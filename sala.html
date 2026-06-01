@@ -14,15 +14,17 @@
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #0f172a; color: #f8fafc; padding: 15px; user-select: none; } 
+        body { background-color: #0f172a; color: #f8fafc; padding: 15px; user-select: none; transition: background-color 0.05s; } 
         
-        .cabecero-pro { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 2px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .cabecero-pro { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .marca-contenedor { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .logo-svg { width: 32px; height: 32px; }
         .cabecero-pro h1 { font-size: 22px; font-weight: 800; color: #ffffff; }
         .cabecero-pro h1 span { color: #38bdf8; }
         
         .marcador-conexion { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; background: #334155; color: #94a3b8; margin-bottom: 10px; }
+        .estado-buscando { background: #1e3a8a; color: #93c5fd; animation: parpadeo 2s infinite; }
+        .estado-error { background: #991b1b; color: #fca5a5; }
         
         .contenedor-config { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; align-items: center; }
         .selector-rango { background: #0f172a; color: #ffffff; border: 2px solid #38bdf8; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 15px; text-transform: uppercase; width: 100%; text-align: center; cursor: pointer; }
@@ -41,6 +43,8 @@
         
         .btn-audio { background: #10b981; color: white; border: none; padding: 14px 24px; border-radius: 12px; font-weight: 900; font-size: 15px; cursor: pointer; width: 100%; box-shadow: 0 4px 0 #065f46; text-transform: uppercase; text-align: center; letter-spacing: 0.5px; }
         .btn-audio:active { transform: translateY(4px); box-shadow: none; }
+        
+        @keyframes parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
 
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
@@ -64,10 +68,10 @@
         let audioContext = null;
         let audioUnlocked = false;
         
-        // Recuperamos el rango guardado en la memoria de este terminal concreto
+        // Guardamos el rango de este terminal (por defecto general/Tablet Pase)
         let miRangoAsignado = localStorage.getItem('fredware_rango_num') || 'general';
         
-        // Tu pitido limpio original que tanto te gusta
+        // El pitido original agudo y limpio
         function sonarTimbrePaseFuerte() {
             if (!audioContext || !audioUnlocked) return;
             try {
@@ -109,7 +113,7 @@
             osc.stop(audioContext.currentTime + duracion);
         }
         
-        // 🔥 ACTIVA EL AUDIO Y FUERZA EL DESBLOQUEO DE VIBRACIÓN ANTE GOOGLE CHROME
+        // Activa el audio y registra la interacción inicial del dedo ante Google Chrome
         function entrarEnServicioActivarDispositivo() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -117,7 +121,7 @@
             audioContext.resume().then(() => {
                 audioUnlocked = true;
                 
-                // Forzamos un zumbido inicial de prueba: si vibra aquí, Chrome ya da pista libre para el bolsillo
+                // Zumbido de confirmación en la mano al fichar
                 if (navigator.vibrate) {
                     navigator.vibrate([200, 100, 200]);
                 }
@@ -141,12 +145,10 @@
             if (el) { el.innerText = texto; el.className = "marcador-conexion " + claseEstilo; }
         }
 
-        // El camarero cambia su rango e inmediatamente actualizamos la interfaz
         function cambiarNumeroDeRango(nuevoRango) {
             miRangoAsignado = nuevoRango.trim();
             localStorage.setItem('fredware_rango_num', miRangoAsignado);
             
-            // Reseteamos el botón verde para obligarle a pulsar y registrar el permiso de vibración
             const btn = document.getElementById('btn-audio');
             if (btn) {
                 btn.innerHTML = "📳 GUARDAR RANGO Y ACTIVAR VIBRACIÓN";
@@ -185,29 +187,40 @@
             setTimeout(() => document.body.classList.remove('ataque-saco'), 250);
         }
 
-        // 📳 COMPROBADOR DE CRUZE DE RANGOS
+        // 📳 EL HACK MAESTRO: Engaña a Chrome con un miniflash para forzar la vibración nativa
         function comprobarVibracionRango(camareroTexto) {
             if (!navigator.vibrate) return;
-            if (miRangoAsignado === "general") return; // La tablet fija del pase no vibra
+            if (miRangoAsignado === "general") return; // La tablet fija no vibra nunca
 
             let inputCocina = String(camareroTexto || "").toLowerCase().trim();
+            let miFiltroLocal = String(miRangoAsignado).trim();
 
-            // 📢 BOTÓN MAESTRO: Si desde cocina mandas "Sala" o "General", vibran todos los móviles a saco
-            if (inputCocina === "sala" || inputCocina === "general" || inputCocina === "sala en general") {
-                navigator.vibrate([400, 150, 400, 150, 400]);
-                return;
-            }
+            // 📢 LLAMADA DE ASISTENCIA GLOBAL DE SALA
+            let esLlamadaGeneral = (inputCocina === "sala" || inputCocina === "general" || inputCocina === "sala en general");
 
-            // Mapeamos los nombres reales de cocina a vuestros rangos lógicos
+            // Mapeamos los textos que dibuja la cocina a los rangos correspondientes
             let rangoDetectado = "";
             if (inputCocina === "daniela" || inputCocina === "1") rangoDetectado = "1";
             else if (inputCocina === "carlos" || inputCocina === "2") rangoDetectado = "2";
             else if (inputCocina === "javi" || inputCocina === "javier" || inputCocina === "3") rangoDetectado = "3";
             else if (inputCocina === "4") rangoDetectado = "4";
 
-            // Si el móvil coincide con el rango del plato, metemos zambombazo continuo de aviso
-            if (miRangoAsignado === rangoDetectado && rangoDetectado !== "") {
-                navigator.vibrate([800, 250, 800]); 
+            let esMiRango = (miFiltroLocal === rangoDetectado && rangoDetectado !== "");
+
+            // Si es un aviso genérico de sala o es el rango de este móvil... ¡METEMOS EL VIAJE!
+            if (esLlamadaGeneral || esMiRango) {
+                
+                // 💥 EL ENGAÑO: Cambiamos el fondo a rojo una fracción de segundo.
+                // Este renderizado forzoso en primer plano hace que Android despierte a Chrome en el bolsillo.
+                document.body.style.backgroundColor = "#ef4444"; 
+                
+                // Disparamos la vibración nativa del terminal en el bolsillo
+                navigator.vibrate([800, 250, 800]);
+
+                // Restauramos el fondo oscuro original al instante
+                setTimeout(() => {
+                    document.body.style.backgroundColor = "#0f172a";
+                }, 200);
             }
         }
     </script>
@@ -226,6 +239,7 @@
     <div id="marcador-estado" class="marcador-conexion">⏳ Inicializando...</div>
     
     <div class="contenedor-config">
+        <!-- 🎯 EL SELECTOR EN PANTALLA PARA EL CAMARERO -->
         <select id="select-rango-num" class="selector-rango" onchange="cambiarNumeroDeRango(this.value)">
             <option value="general">📱 TABLET FIJA (SÓLO PITIDO PASE)</option>
             <option value="1">🎯 RANGO 1 (DANIELA)</option>
@@ -234,6 +248,7 @@
             <option value="4">🎯 RANGO 4</option>
         </select>
 
+        <!-- 📳 EL BOTÓN DE CONEXIÓN PARA ENGANCHAR LA VIBRACIÓN ANTE GOOGLE -->
         <button id="btn-audio" class="btn-audio" onclick="entrarEnServicioActivarDispositivo()">🔊 ENTRAR EN SERVICIO (ACTIVAR BOLSILLO)</button>
     </div>
 </div>
@@ -292,7 +307,7 @@
 
                 const platosNuevos = data.filter(p => p.mesa !== 'TIMBRE');
                 if (platosNuevos.length > platosEnPase.length) {
-                    sonarTimbrePaseFuerte(); // Pitan todas las pantallas siempre
+                    sonarTimbrePaseFuerte(); // Pitan todas las pantallas
                     
                     let ultimoPlato = platosNuevos[0];
                     if (ultimoPlato) {
