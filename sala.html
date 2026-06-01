@@ -67,22 +67,23 @@
         let audioContext = null;
         let audioUnlocked = false;
         
-        // 🔊 MOTOR TRIFÓNICO ULTRA-POTENTE (Golpe armónico ensordecedor)
+        // 🔊 AUDIO INDUSTRIAL ULTRA-POTENTE + EMBESTIDA HÁPTICA PARA EL RELOJ
         function sonarTimbrePaseFuerte() {
             if (!audioContext || !audioUnlocked) return;
             try {
-                // Golpe 1: Onda Cuadrada Chillonísima (1400Hz) al 100% de volumen
-                tocarFrecuenciaMetálica(1400, 'square', 0.25, 1.0);
+                // 1. EL PITIDO METÁLICO (Onda cuadrada aguda para romper el ruido de la cocina)
+                tocarFrecuenciaMetálica(1400, 'square', 0.2, 0.9);
                 
-                // Golpe 2: Onda Diente de Sierra (1100Hz) desfasada para dar ruido y distorsión
+                // 2. PRIMERA ONDA DE VIBRACIÓN (Diente de sierra ruidoso a 60Hz al 100% de volumen)
+                // Esto sacude físicamente la membrana del altavoz del smartwatch
                 setTimeout(() => {
-                    tocarFrecuenciaMetálica(1100, 'sawtooth', 0.40, 1.0); 
-                }, 40);
+                    tocarFrecuenciaMetálica(60, 'sawtooth', 0.5, 1.0); 
+                }, 50);
 
-                // Golpe 3: Refuerzo Armónico Agudo (1420Hz) con Onda Triangular para penetrar el ruido
+                // 3. SEGUNDA ONDA DE VIBRACIÓN (Impacto a 45Hz para mantener el pulso en la muñeca)
                 setTimeout(() => {
-                    tocarFrecuenciaMetálica(1420, 'triangle', 0.35, 1.0); 
-                }, 80);
+                    tocarFrecuenciaMetálica(45, 'sawtooth', 0.4, 1.0); 
+                }, 600);
             } catch(e){}
         }
 
@@ -132,7 +133,7 @@
                 sonarTimbrePaseFuerte(); 
                 const btn = document.getElementById('btn-audio');
                 if(btn) {
-                    btn.innerHTML = "🔔 TIMBRE TRIFÓNICO MAX ACTIVO";
+                    btn.innerHTML = "🔔 AUDIO + EMBESTIDA HÁPTICA ACTIVA";
                     btn.style.background = "#475569";
                     btn.style.boxShadow = "none";
                 }
