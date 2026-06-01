@@ -67,17 +67,23 @@
         let audioContext = null;
         let audioUnlocked = false;
         
-        // 🔊 AUDIO INDUSTRIAL DE MÁXIMA POTENCIA (Square + Sawtooth a 1.0)
+        // 🔊 AUDIO INDUSTRIAL ULTRA-POTENTE + EMBESTIDA HÁPTICA PARA EL RELOJ
         function sonarTimbrePaseFuerte() {
             if (!audioContext || !audioUnlocked) return;
             try {
-                // Golpe agudo inicial con onda cuadrada (rompe el barullo)
-                tocarFrecuenciaMetálica(1400, 'square', 0.15, 0.9);
+                // 1. EL PITIDO METÁLICO (Onda cuadrada aguda para romper el ruido de la cocina)
+                tocarFrecuenciaMetálica(1400, 'square', 0.2, 0.9);
                 
-                // Segundo golpe ruidoso con onda diente de sierra al 100% de volumen
+                // 2. PRIMERA ONDA DE VIBRACIÓN (Diente de sierra ruidoso a 60Hz al 100% de volumen)
+                // Esto sacude físicamente la membrana del altavoz del smartwatch
                 setTimeout(() => {
-                    tocarFrecuenciaMetálica(1100, 'sawtooth', 0.35, 1.0); 
-                }, 90);
+                    tocarFrecuenciaMetálica(60, 'sawtooth', 0.5, 1.0); 
+                }, 50);
+
+                // 3. SEGUNDA ONDA DE VIBRACIÓN (Impacto a 45Hz para mantener el pulso en la muñeca)
+                setTimeout(() => {
+                    tocarFrecuenciaMetálica(45, 'sawtooth', 0.4, 1.0); 
+                }, 600);
             } catch(e){}
         }
 
@@ -127,7 +133,7 @@
                 sonarTimbrePaseFuerte(); 
                 const btn = document.getElementById('btn-audio');
                 if(btn) {
-                    btn.innerHTML = "🔔 ALTAVOZ INDUSTRIAL ACTIVO";
+                    btn.innerHTML = "🔔 AUDIO + EMBESTIDA HÁPTICA ACTIVA";
                     btn.style.background = "#475569";
                     btn.style.boxShadow = "none";
                 }
