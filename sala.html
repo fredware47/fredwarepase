@@ -3,10 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fredware Pase - Recepción Sala</title>
+    <title>Fredware Pase - Recepción Sala (con notificaciones)</title>
     
     <link rel="manifest" href="manifest.json">
+    
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%2338bdf8'/><path d='M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z' fill='%230f172a'/><path d='M224 200h64v10h-64z' fill='%230f172a'/></svg>">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#0f172a">
+    <meta name="apple-mobile-web-app-title" content="Fredware Pase">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%2338bdf8'/><path d='M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z' fill='%230f172a'/><path d='M224 200h64v10h-64z' fill='%230f172a'/></svg>">
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -14,7 +20,7 @@
         
         .cabecero-pro { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .marca-contenedor { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-        .logo-svg { width: 32px; height: 32px; transform: drop-shadow(0px 2px 4px rgba(0,0,0,0.5)); }
+        .logo-svg { width: 32px; height: 32px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.5)); }
         .cabecero-pro h1 { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; }
         .cabecero-pro h1 span { color: #38bdf8; }
         
@@ -39,6 +45,9 @@
         
         @keyframes parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -52,51 +61,46 @@
         <h1>FREDWARE <span>PASE</span></h1>
     </div>
     <div id="marcador-estado" class="marcador-conexion">⏳ Inicializando...</div>
-    <button id="btn-audio" class="btn-audio" onclick="desbloquearAudio()">🔊 ACTIVAR SONIDO INDUSTRIAL Y NOTIFICACIONES</button>
+    <button id="btn-audio" class="btn-audio" onclick="desbloquearAudio()">🔊 COMPROBAR ALTAVOZ (POTENCIA MAX)</button>
 </div>
 
 <div class="grid-alertas" id="pizarra-comandas"> 
-    <div class="pizarra-vaciva">Cargando pase en tiempo real...</div> 
+    <div class="pizarra-vaciva">Cargando pase...</div> 
 </div>
 
-<!-- Importamos Supabase (OneSignal ELIMINADO por completo de aquí) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
-
 <script>
+    // ---------- CONFIGURACIÓN SUPABASE ----------
     const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
     const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw";
     let dbCliente = null;
     let platosEnPase = [];
+
+    // ---------- SONIDO (idéntico al que ya tenías) ----------
     let audioContext = null;
     let audioUnlocked = false;
 
-    // 🔒 PONE UNA NOTIFICACIÓN LOCAL EN LA BARRA DE ANDROID (Sustituye a OneSignal)
-    function lanzarNotificacionLocal(mesa, preparacion, camarero, icono) {
-        if (!("Notification" in window)) return;
-        if (Notification.permission === "granted") {
-            new Notification(`${icono || '🛎️'} Mesa ${mesa} listo!`, {
-                body: `🏃‍♂️ Lleva: ${camarero} · ${preparacion}`,
-                icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2338bdf8'/%3E%3Ctext x='50' y='67' text-anchor='middle' font-size='40' fill='white'%3E🍽%3C/text%3E%3C/svg%3E",
-                silent: false
-            });
-        }
+    function tocarFrecuenciaMetálica(frec, tipoOnda, duracion, vol) {
+        if (!audioContext || !audioUnlocked) return;
+        let osc = audioContext.createOscillator();
+        let gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.type = tipoOnda;
+        osc.frequency.setValueAtTime(frec, audioContext.currentTime);
+        gain.gain.setValueAtTime(vol, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duracion);
+        osc.start();
+        osc.stop(audioContext.currentTime + duracion);
     }
 
-    function solicitarPermisoNotificaciones() {
-        if ("Notification" in window && Notification.permission === "default") {
-            Notification.requestPermission();
-        }
-    }
-
-    // 🔊 AUDIO INDUSTRIAL DE MÁXIMA POTENCIA (Ondas Square + Sawtooth a volumen 1.0)
     function sonarTimbrePaseFuerte() {
         if (!audioContext || !audioUnlocked) return;
         try {
             tocarFrecuenciaMetálica(1400, 'square', 0.15, 0.9);
             setTimeout(() => {
-                tocarFrecuenciaMetálica(1100, 'sawtooth', 0.35, 1.0); 
+                tocarFrecuenciaMetálica(1100, 'sawtooth', 0.35, 1.0);
             }, 90);
-        } catch(e){}
+        } catch(e) {}
     }
 
     function sonarAlarmaPanicoFuerte() {
@@ -106,52 +110,53 @@
             let gain = audioContext.createGain();
             osc.connect(gain);
             gain.connect(audioContext.destination);
-            osc.type = 'sawtooth'; 
+            osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(500, audioContext.currentTime);
             osc.frequency.linearRampToValueAtTime(950, audioContext.currentTime + 0.2);
             osc.frequency.linearRampToValueAtTime(500, audioContext.currentTime + 0.4);
-            gain.gain.setValueAtTime(0.8, audioContext.currentTime); 
+            gain.gain.setValueAtTime(0.8, audioContext.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
             osc.start();
             osc.stop(audioContext.currentTime + 0.5);
-        } catch(e){}
+        } catch(e) {}
     }
 
-    function tocarFrecuenciaMetálica(frec, tipoOnda, duracion, vol) {
-        let osc = audioContext.createOscillator();
-        let gain = audioContext.createGain();
-        osc.connect(gain);
-        gain.connect(audioContext.destination);
-        osc.type = tipoOnda; 
-        osc.frequency.setValueAtTime(frec, audioContext.currentTime);
-        gain.gain.setValueAtTime(vol, audioContext.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.00001, application ? audioContext.currentTime : audioContext.currentTime + duracion);
-        osc.start();
-        osc.stop(audioContext.currentTime + duracion);
-    }
-    
     function desbloquearAudio() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         audioContext.resume().then(() => {
             audioUnlocked = true;
-            sonarTimbrePaseFuerte(); 
-            solicitarPermisoNotificaciones(); // Al hacer click, pedimos el permiso local
+            sonarTimbrePaseFuerte();
             const btn = document.getElementById('btn-audio');
             if(btn) {
-                btn.innerHTML = "🔔 NOTIFICACIONES Y ALTAVOZ ACTIVADOS";
+                btn.innerHTML = "🔔 ALTAVOZ EN MODO INDUSTRIAL";
                 btn.style.background = "#475569";
                 btn.style.boxShadow = "none";
             }
         });
     }
 
-    function cambiarTextoEstado(texto, claseEstilo) {
-        const el = document.getElementById('marcador-estado');
-        if (el) { el.innerText = texto; el.className = "marcador-conexion " + claseEstilo; }
+    // ---------- NOTIFICACIONES LOCALES (para que el reloj las capte por Bluetooth) ----------
+    function solicitarPermisoNotificaciones() {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
     }
-    
+
+    function notificarAlMovil(mesa, preparacion, camarero) {
+        if (!("Notification" in window)) return;
+        if (Notification.permission === "granted") {
+            new Notification(`🍽️ Nuevo plato - Mesa ${mesa}`, {
+                body: `${preparacion} · Camarero: ${camarero}`,
+                icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2338bdf8'/%3E%3Ctext x='50' y='67' text-anchor='middle' font-size='40' fill='white'%3E🍽%3C/text%3E%3C/svg%3E",
+                silent: false,
+                vibrate: [200, 100, 200]  // vibración en móviles compatibles (el reloj la replicará si puede)
+            });
+        }
+    }
+
+    // ---------- MANEJO DE LA PANTALLA (renderizado) ----------
     function renderizarPizarra() {
         const contenedor = document.getElementById('pizarra-comandas');
         if (!contenedor) return;
@@ -175,75 +180,114 @@
         });
     }
 
+    async function retirarPlato(id) {
+        if (!dbCliente) return;
+        platosEnPase = platosEnPase.filter(p => String(p.id) !== String(id));
+        renderizarPizarra();
+        try { await dbCliente.from('platos').delete().eq('id', id); } catch(e) {}
+    }
+
+    // ---------- RECEPCIÓN EN TIEMPO REAL (Realtime) ----------
+    async function cargarYComprobarPlatos() {
+        if (!dbCliente) return;
+        try {
+            const { data, error } = await dbCliente
+                .from('platos')
+                .select('*')
+                .order('timestamp', { ascending: false });
+            if (error) throw error;
+            const platosNormales = (data || []).filter(p => p.mesa !== 'TIMBRE');
+            platosEnPase = platosNormales;
+            renderizarPizarra();
+            cambiarTextoEstado("🟢 En Línea · Notificaciones activas", "");
+        } catch(e) {
+            console.error("Error cargando platos:", e);
+            cambiarTextoEstado("❌ Sin señal", "estado-error");
+        }
+    }
+
     function recibirTimbrazo() {
-        sonarAlarmaPanicoFuerte(); 
+        sonarAlarmaPanicoFuerte();
         if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
         document.body.classList.add('ataque-saco');
         setTimeout(() => document.body.classList.remove('ataque-saco'), 250);
     }
 
-    async function retirarPlato(id) {
-        if (!dbCliente) return;
-        platosEnPase = platosEnPase.filter(p => String(p.id) !== String(id));
+    function agregarPlatoYSonar(plato) {
+        // Si es el timbre de pánico
+        if (plato.mesa === 'TIMBRE') {
+            recibirTimbrazo();
+            setTimeout(() => {
+                if (dbCliente) dbCliente.from('platos').delete().eq('id', plato.id);
+            }, 500);
+            return;
+        }
+
+        // Evitar duplicados si ya existe el mismo id
+        if (platosEnPase.some(p => String(p.id) === String(plato.id))) return;
+
+        // Añadir al principio (más reciente)
+        platosEnPase.unshift(plato);
         renderizarPizarra();
-        try { await dbCliente.from('platos').delete().eq('id', id); } catch (e) {}
+
+        // Sonido fuerte en la sala
+        sonarTimbrePaseFuerte();
+
+        // NOTIFICACIÓN AL MÓVIL → se enviará al reloj por Bluetooth
+        notificarAlMovil(plato.mesa, plato.preparacion, plato.camarero);
     }
 
-    // ⚡ SUSCRIPCIÓN SUPABASE REALTIME EN TIEMPO REAL (Adiós al Polling de 3s)
     function iniciarRealtime() {
         if (!dbCliente) return;
-        
-        dbCliente
+        const canal = dbCliente
             .channel('sala-platos')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'platos' }, (payload) => {
-                const nuevoPlato = payload.new;
-                
-                if (nuevoPlato.mesa === 'TIMBRE') {
-                    recibirTimbrazo();
-                    setTimeout(() => {
-                        if (dbCliente) dbCliente.from('platos').delete().eq('id', nuevoPlato.id);
-                    }, 500);
-                    return;
+            .on('postgres_changes', 
+                { event: 'INSERT', schema: 'public', table: 'platos' },
+                (payload) => {
+                    agregarPlatoYSonar(payload.new);
+                })
+            .on('postgres_changes',
+                { event: 'DELETE', schema: 'public', table: 'platos' },
+                () => {
+                    // Sincronización completa cuando alguien retira un plato
+                    cargarYComprobarPlatos();
+                })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    cambiarTextoEstado("🟢 En Línea · Notificaciones activas", "");
+                } else if (status === 'CHANNEL_ERROR') {
+                    cambiarTextoEstado("⚠️ Error de conexión Realtime", "estado-error");
                 }
-
-                // 🛎️ 1. Pintamos en pantalla y suena el altavoz metálico de inmediato
-                platosEnPase.unshift(nuevoPlato);
-                renderizarPizarra();
-                sonarTimbrePaseFuerte();
-
-                // 📱 2. Lanzamos la notificación local de Chrome (para saltar al Bluetooth del reloj)
-                lanzarNotificacionLocal(nuevoPlato.mesa, nuevoPlato.preparacion, nuevoPlato.camarero, nuevoPlato.icono);
-            })
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'platos' }, () => {
-                // Si alguien retira un plato desde otro terminal, sincronizamos la lista completa
-                sincronizarListaCompleta();
-            })
-            .subscribe();
+            });
     }
 
-    async function sincronizarListaCompleta() {
-        if (!dbCliente) return;
-        cambiarTextoEstado("🔄 Sincronizando...", "estado-buscando");
-        try {
-            const { data, error } = await dbCliente.from('platos').select('*').order('timestamp', { ascending: false });
-            if (error) throw error;
-            platosEnPase = (data || []).filter(p => p.mesa !== 'TIMBRE');
-            renderizarPizarra();
-            cambiarTextoEstado("🟢 En Línea · Realtime Activo", "");
-        } catch (e) { 
-            cambiarTextoEstado("❌ Sin señal", "estado-error"); 
+    function cambiarTextoEstado(texto, claseEstilo) {
+        const el = document.getElementById('marcador-estado');
+        if (el) {
+            el.innerText = texto;
+            el.className = "marcador-conexion " + claseEstilo;
         }
     }
 
-    window.onload = function() {
+    // ---------- ARRANQUE ----------
+    function arrancarSistemaSala() {
         const libSupabase = window.supabase || window.supabasejs;
-        if (libSupabase) {
-            dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            sincronizarListaCompleta();
-            iniciarRealtime();
-            solicitarPermisoNotificaciones();
+        if (!libSupabase) {
+            cambiarTextoEstado("❌ Supabase no cargado", "estado-error");
+            return;
         }
-    };
+        dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        cargarYComprobarPlatos();
+        iniciarRealtime();
+        solicitarPermisoNotificaciones();
+        // También intentar desbloquear audio silenciosamente (el botón ya existe)
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // No lo reanudamos automáticamente porque el navegador lo bloquea; el usuario debe pulsar el botón.
+        }
+    }
+
+    window.onload = arrancarSistemaSala;
 </script>
 </body>
 </html>
