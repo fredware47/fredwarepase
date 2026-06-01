@@ -16,14 +16,16 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #0f172a; color: #f8fafc; padding: 15px; user-select: none; } 
         
-        .cabecero-pro { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 1px solid #334155; }
+        .cabecero-pro { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 2px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .marca-contenedor { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
         .logo-svg { width: 32px; height: 32px; }
         .cabecero-pro h1 { font-size: 22px; font-weight: 800; color: #ffffff; }
         .cabecero-pro h1 span { color: #38bdf8; }
         
-        .marcador-conexion { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; background: #334155; color: #94a3b8; }
-        .selector-rango { margin-top: 10px; background: #0f172a; color: #38bdf8; border: 2px solid #334155; padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 14px; text-transform: uppercase; cursor: pointer; }
+        .marcador-conexion { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; background: #334155; color: #94a3b8; margin-bottom: 10px; }
+        
+        .contenedor-config { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; align-items: center; }
+        .selector-rango { background: #0f172a; color: #ffffff; border: 2px solid #38bdf8; padding: 12px; border-radius: 12px; font-weight: bold; font-size: 15px; text-transform: uppercase; width: 100%; text-align: center; cursor: pointer; }
         
         .grid-alertas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; } 
         .tarjeta-plato { background: #1e293b; border: 2px solid #334155; border-radius: 16px; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); } 
@@ -37,7 +39,7 @@
         .pizarra-vaciva { grid-column: 1 / -1; text-align: center; padding: 60px; color: #475569; font-size: 18px; font-style: italic; border: 2px dashed #334155; border-radius: 16px; background: #111827; } 
         body.ataque-saco { background-color: #ef4444 !important; transition: 0.05s; } 
         
-        .btn-audio { background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 900; font-size: 15px; margin-top: 10px; cursor: pointer; width: 100%; max-width: 320px; box-shadow: 0 4px 0 #065f46; text-transform: uppercase; }
+        .btn-audio { background: #10b981; color: white; border: none; padding: 14px 24px; border-radius: 12px; font-weight: 900; font-size: 15px; cursor: pointer; width: 100%; box-shadow: 0 4px 0 #065f46; text-transform: uppercase; text-align: center; letter-spacing: 0.5px; }
         .btn-audio:active { transform: translateY(4px); box-shadow: none; }
     </style>
 
@@ -62,10 +64,10 @@
         let audioContext = null;
         let audioUnlocked = false;
         
-        // Guardamos el rango asignado a este terminal (por defecto general/Pase)
+        // Recuperamos el rango guardado en la memoria de este terminal concreto
         let miRangoAsignado = localStorage.getItem('fredware_rango_num') || 'general';
         
-        // El pitido original agudo y limpio
+        // Tu pitido limpio original que tanto te gusta
         function sonarTimbrePaseFuerte() {
             if (!audioContext || !audioUnlocked) return;
             try {
@@ -85,7 +87,7 @@
                 gain.connect(audioContext.destination);
                 osc.type = 'sawtooth'; 
                 osc.frequency.setValueAtTime(500, audioContext.currentTime);
-                osc.frequency.linearRampToValueAtTime(950, application ? audioContext.currentTime : audioContext.currentTime + 0.2);
+                osc.frequency.linearRampToValueAtTime(950, audioContext.currentTime + 0.2);
                 osc.frequency.linearRampToValueAtTime(500, audioContext.currentTime + 0.4);
                 gain.gain.setValueAtTime(0.8, audioContext.currentTime); 
                 gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
@@ -107,16 +109,27 @@
             osc.stop(audioContext.currentTime + duracion);
         }
         
-        function desbloquearAudio() {
+        // 🔥 ACTIVA EL AUDIO Y FUERZA EL DESBLOQUEO DE VIBRACIÓN ANTE GOOGLE CHROME
+        function entrarEnServicioActivarDispositivo() {
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
             audioContext.resume().then(() => {
                 audioUnlocked = true;
+                
+                // Forzamos un zumbido inicial de prueba: si vibra aquí, Chrome ya da pista libre para el bolsillo
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+                
                 sonarTimbrePaseFuerte(); 
+
                 const btn = document.getElementById('btn-audio');
+                const selector = document.getElementById('select-rango-num');
+                let nombreRango = selector.options[selector.selectedIndex].text;
+                
                 if(btn) {
-                    btn.innerHTML = "🔔 MOTOR DE BUSCAS ACTIVO";
+                    btn.innerHTML = `📳 CONECTADO: ${nombreRango}`;
                     btn.style.background = "#475569";
                     btn.style.boxShadow = "none";
                 }
@@ -128,9 +141,18 @@
             if (el) { el.innerText = texto; el.className = "marcador-conexion " + claseEstilo; }
         }
 
+        // El camarero cambia su rango e inmediatamente actualizamos la interfaz
         function cambiarNumeroDeRango(nuevoRango) {
             miRangoAsignado = nuevoRango.trim();
             localStorage.setItem('fredware_rango_num', miRangoAsignado);
+            
+            // Reseteamos el botón verde para obligarle a pulsar y registrar el permiso de vibración
+            const btn = document.getElementById('btn-audio');
+            if (btn) {
+                btn.innerHTML = "📳 GUARDAR RANGO Y ACTIVAR VIBRACIÓN";
+                btn.style.background = "#10b981";
+                btn.style.boxShadow = "0 4px 0 #065f46";
+            }
         }
         
         function renderizarPizarra() {
@@ -163,29 +185,29 @@
             setTimeout(() => document.body.classList.remove('ataque-saco'), 250);
         }
 
-        // 📳 FILTRADO POR RANGO + LLAMADA UNIVERSAL DE SALA
+        // 📳 COMPROBADOR DE CRUZE DE RANGOS
         function comprobarVibracionRango(camareroTexto) {
             if (!navigator.vibrate) return;
-            if (miRangoAsignado === "general") return; // La tablet fija no vibra
+            if (miRangoAsignado === "general") return; // La tablet fija del pase no vibra
 
             let inputCocina = String(camareroTexto || "").toLowerCase().trim();
 
-            // 📢 CASO ESPECIAL: Si en cocina pulsas "Sala en General", ¡vibran todos los móviles!
+            // 📢 BOTÓN MAESTRO: Si desde cocina mandas "Sala" o "General", vibran todos los móviles a saco
             if (inputCocina === "sala" || inputCocina === "general" || inputCocina === "sala en general") {
-                navigator.vibrate([400, 150, 400]);
+                navigator.vibrate([400, 150, 400, 150, 400]);
                 return;
             }
 
-            // Mapeo automático de vuestro orden establecido
+            // Mapeamos los nombres reales de cocina a vuestros rangos lógicos
             let rangoDetectado = "";
             if (inputCocina === "daniela" || inputCocina === "1") rangoDetectado = "1";
             else if (inputCocina === "carlos" || inputCocina === "2") rangoDetectado = "2";
             else if (inputCocina === "javi" || inputCocina === "javier" || inputCocina === "3") rangoDetectado = "3";
             else if (inputCocina === "4") rangoDetectado = "4";
 
-            // Si el móvil coincide con el rango del plato lanzado, vibra intensamente
+            // Si el móvil coincide con el rango del plato, metemos zambombazo continuo de aviso
             if (miRangoAsignado === rangoDetectado && rangoDetectado !== "") {
-                navigator.vibrate([600, 200, 600]);
+                navigator.vibrate([800, 250, 800]); 
             }
         }
     </script>
@@ -203,15 +225,17 @@
     </div>
     <div id="marcador-estado" class="marcador-conexion">⏳ Inicializando...</div>
     
-    <select id="select-rango-num" class="selector-rango" onchange="cambiarNumeroDeRango(this.value)">
-        <option value="general">📱 PANTALLA FIJA (PASE / TABLET)</option>
-        <option value="1">🎯 RANGO 1 (DANIELA)</option>
-        <option value="2">🎯 RANGO 2 (CARLOS)</option>
-        <option value="3">🎯 RANGO 3 (JAVI)</option>
-        <option value="4">🎯 RANGO 4</option>
-    </select>
+    <div class="contenedor-config">
+        <select id="select-rango-num" class="selector-rango" onchange="cambiarNumeroDeRango(this.value)">
+            <option value="general">📱 TABLET FIJA (SÓLO PITIDO PASE)</option>
+            <option value="1">🎯 RANGO 1 (DANIELA)</option>
+            <option value="2">🎯 RANGO 2 (CARLOS)</option>
+            <option value="3">🎯 RANGO 3 (JAVI)</option>
+            <option value="4">🎯 RANGO 4</option>
+        </select>
 
-    <button id="btn-audio" class="btn-audio" onclick="desbloquearAudio()">🔊 ACTIVAR MODO LOCALIZADOR</button>
+        <button id="btn-audio" class="btn-audio" onclick="entrarEnServicioActivarDispositivo()">🔊 ENTRAR EN SERVICIO (ACTIVAR BOLSILLO)</button>
+    </div>
 </div>
 
 <div class="grid-alertas" id="pizarra-comandas"> 
@@ -268,7 +292,7 @@
 
                 const platosNuevos = data.filter(p => p.mesa !== 'TIMBRE');
                 if (platosNuevos.length > platosEnPase.length) {
-                    sonarTimbrePaseFuerte(); // La tablet del pase pita siempre
+                    sonarTimbrePaseFuerte(); // Pitan todas las pantallas siempre
                     
                     let ultimoPlato = platosNuevos[0];
                     if (ultimoPlato) {
