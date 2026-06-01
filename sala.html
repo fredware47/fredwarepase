@@ -3,273 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fredware Pase - Sala (con sonido y notificaciones)</title>
+    <title>Fredware Pase - Recepción Sala</title>
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%2338bdf8'/><path d='M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z' fill='%230f172a'/><path d='M224 200h64v10h-64z' fill='%230f172a'/></svg>">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#0f172a">
+    <meta name="apple-mobile-web-app-title" content="Fredware Pase">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%2338bdf8'/><path d='M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z' fill='%230f172a'/><path d='M224 200h64v10h-64z' fill='%230f172a'/></svg>">
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-        body { background: #0f172a; color: #f8fafc; padding: 15px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { background: #1e293b; border-radius: 20px; padding: 15px; text-align: center; margin-bottom: 20px; border: 1px solid #334155; }
-        .header h1 { font-size: 1.6rem; }
-        .header h1 span { color: #38bdf8; }
-        .estado { display: inline-block; background: #334155; padding: 5px 12px; border-radius: 40px; font-size: 0.7rem; margin-top: 8px; }
-        .estado.ok { background: #10b981; color: white; }
-        .estado.error { background: #ef4444; }
-        .estado.warning { background: #eab308; }
-        .botonera { display: flex; gap: 10px; justify-content: center; margin: 15px 0; }
-        button { background: #3b82f6; border: none; padding: 10px 20px; border-radius: 40px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.1s; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-        button:active { transform: scale(0.97); }
-        .btn-sonido { background: #10b981; }
-        .grid-platos { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; margin-top: 20px; }
-        .tarjeta { background: #1e293b; border-radius: 20px; padding: 15px; border: 1px solid #475569; text-align: center; }
-        .mesa { font-size: 3rem; font-weight: 900; font-family: monospace; }
-        .camarero { color: #34d399; font-size: 0.8rem; margin: 5px 0; }
-        .plato { background: #020617; display: inline-block; padding: 5px 12px; border-radius: 30px; font-size: 0.9rem; margin: 8px 0; }
-        .btn-retirar { background: #ef4444; width: 100%; margin-top: 10px; box-shadow: 0 3px 0 #991b1b; }
-        .vacio { grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b; font-style: italic; }
-        .log-area { background: #00000080; border-radius: 12px; padding: 8px; font-size: 0.7rem; margin-top: 20px; font-family: monospace; max-height: 150px; overflow-y: auto; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; padding: 15px; transition: background-color 0.1s; user-select: none; } 
+        
+        .cabecero-pro { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .marca-contenedor { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .logo-svg { width: 32px; height: 32px; transform: drop-shadow(0px 2px 4px rgba(0,0,0,0.5)); }
+        .cabecero-pro h1 { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; }
+        .cabecero-pro h1 span { color: #38bdf8; }
+        
+        .marcador-conexion { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; background: #334155; color: #94a3b8; letter-spacing: 0.5px; }
+        .estado-buscando { background: #1e3a8a; color: #93c5fd; animation: parpadeo 2s infinite; }
+        .estado-error { background: #991b1b; color: #fca5a5; }
+        
+        .grid-alertas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; } 
+        .tarjeta-plato { background: #1e293b; border: 2px solid #334155; border-radius: 16px; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); } 
+        .numero-mesa { font-size: 54px; font-weight: 900; color: #ffffff; font-family: monospace; } 
+        .camarero-tag { font-size: 13px; color: #34d399; font-weight: bold; margin-bottom: 8px; background: rgba(52,211,153,0.1); padding: 5px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; } 
+        .tipo-preparacion { font-size: 15px; font-weight: bold; text-transform: uppercase; padding: 6px; border-radius: 8px; background: rgba(0,0,0,0.3); margin-bottom: 15px; } 
+        
+        .btn-retirar { background: #ef4444; color: white; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; padding: 12px; cursor: pointer; width: 100%; transition: 0.1s; box-shadow: 0 4px 0 #b91c1c; }
+        .btn-retirar:active { transform: translateY(4px); box-shadow: none; }
+        
+        .pizarra-vaciva { grid-column: 1 / -1; text-align: center; padding: 60px; color: #475569; font-size: 18px; font-style: italic; border: 2px dashed #334155; border-radius: 16px; background: #111827; } 
+        body.ataque-saco { background-color: #ef4444 !important; transition: 0.05s; } 
+        
+        .btn-audio { background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 900; font-size: 15px; margin-top: 10px; cursor: pointer; width: 100%; max-width: 320px; box-shadow: 0 4px 0 #065f46; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.1s; }
+        .btn-audio:active { transform: translateY(4px); box-shadow: none; }
+        
+        @keyframes parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      setTimeout(() => {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            await OneSignal.init({
+              appId: "391506e2-682c-4564-b726-9a9f366fdde8",
+              allowLocalhostAsSecureOrigin: true 
+            });
+            await OneSignal.Notifications.requestPermission();
+          } catch(e) { console.warn(e); }
+        });
+      }, 500);
+    </script>
+
+    <script>
+        let platosEnPase = [];
+        let audioContext = null;
+        let audioUnlocked = false;
+        
+        // 🔊 AUDIO INDUSTRIAL DE MÁXIMA POTENCIA (Square + Sawtooth a 1.0)
+        function sonarTimbrePaseFuerte() {
+            if (!audioContext || !audioUnlocked) return;
+            try {
+                // Golpe agudo inicial con onda cuadrada (rompe el barullo)
+                tocarFrecuenciaMetálica(1400, 'square', 0.15, 0.9);
+                
+                // Segundo golpe ruidoso con onda diente de sierra al 100% de volumen
+                setTimeout(() => {
+                    tocarFrecuenciaMetálica(1100, 'sawtooth', 0.35, 1.0); 
+                }, 90);
+            } catch(e){}
+        }
+
+        function sonarAlarmaPanicoFuerte() {
+            if (!audioContext || !audioUnlocked) return;
+            try {
+                let osc = audioContext.createOscillator();
+                let gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.type = 'sawtooth'; 
+                osc.frequency.setValueAtTime(500, audioContext.currentTime);
+                osc.frequency.linearRampToValueAtTime(950, audioContext.currentTime + 0.2);
+                osc.frequency.linearRampToValueAtTime(500, audioContext.currentTime + 0.4);
+                
+                gain.gain.setValueAtTime(0.8, audioContext.currentTime); 
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+                
+                osc.start();
+                osc.stop(audioContext.currentTime + 0.5);
+            } catch(e){}
+        }
+
+        function tocarFrecuenciaMetálica(frec, tipoOnda, duracion, vol) {
+            let osc = audioContext.createOscillator();
+            let gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.type = tipoOnda; 
+            osc.frequency.setValueAtTime(frec, audioContext.currentTime);
+            
+            gain.gain.setValueAtTime(vol, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duracion);
+            
+            osc.start();
+            osc.stop(audioContext.currentTime + duracion);
+        }
+        
+        function desbloquearAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            audioContext.resume().then(() => {
+                audioUnlocked = true;
+                sonarTimbrePaseFuerte(); 
+                const btn = document.getElementById('btn-audio');
+                if(btn) {
+                    btn.innerHTML = "🔔 ALTAVOZ INDUSTRIAL ACTIVO";
+                    btn.style.background = "#475569";
+                    btn.style.boxShadow = "none";
+                }
+            });
+        }
+
+        function cambiarTextoEstado(texto, claseEstilo) {
+            const el = document.getElementById('marcador-estado');
+            if (el) { el.innerText = texto; el.className = "marcador-conexion " + claseEstilo; }
+        }
+        
+        function renderizarPizarra() {
+            const contenedor = document.getElementById('pizarra-comandas');
+            if (!contenedor) return;
+            contenedor.innerHTML = "";
+            if (platosEnPase.length === 0) {
+                contenedor.innerHTML = '<div class="pizarra-vaciva">Pase limpio. Esperando comandas...</div>';
+                return;
+            }
+            platosEnPase.forEach(plato => {
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'tarjeta-plato';
+                tarjeta.innerHTML = `
+                    <div>
+                        <div class="numero-mesa">${plato.mesa}</div>
+                        <div class="camarero-tag">🏃‍♂️ LLEVA: ${plato.camarero || '?'}</div>
+                        <div class="tipo-preparacion">${plato.icono || '🍽️'} ${plato.preparacion}</div>
+                    </div>
+                    <button class="btn-retirar" onclick="retirarPlato('${plato.id}')">👋 PLATO LLEVADO</button>
+                `;
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
+        function recibirTimbrazo() {
+            sonarAlarmaPanicoFuerte(); 
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+            document.body.classList.add('ataque-saco');
+            setTimeout(() => document.body.classList.remove('ataque-saco'), 250);
+        }
+    </script>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <h1>FREDWARE <span>PASE · SALA</span></h1>
-        <div id="statusBadge" class="estado">🔄 Inicializando...</div>
-        <div class="botonera">
-            <button id="btnTestSound" class="btn-sonido">🔊 Probar Sonido</button>
-        </div>
-    </div>
 
-    <div class="grid-platos" id="platosContainer">
-        <div class="vacio">Cargando comandas...</div>
+<div class="cabecero-pro">
+    <div class="marca-contenedor">
+        <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+            <circle cx="256" cy="256" r="240" fill="#38bdf8"/>
+            <path d="M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z" fill="#0f172a"/>
+            <path d="M224 200h64v10h-64z" fill="#0f172a"/>
+        </svg>
+        <h1>FREDWARE <span>PASE</span></h1>
     </div>
-
-    <div class="log-area" id="logPanel">
-        📡 Sistema listo. Esperando eventos...
-    </div>
+    <div id="marcador-estado" class="marcador-conexion">⏳ Inicializando...</div>
+    <button id="btn-audio" class="btn-audio" onclick="desbloquearAudio()">🔊 COMPROBAR ALTAVOZ (POTENCIA MAX)</button>
 </div>
 
+<div class="grid-alertas" id="pizarra-comandas"> 
+    <div class="pizarra-vaciva">Cargando pase...</div> 
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
 <script>
-    // ---------- CONFIGURACIÓN ----------
     const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
     const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw";
-    let supabaseClient = null;
-    let platosActuales = [];
-
-    // ---------- AUDIO (simple y fiable) ----------
-    let audioCtx = null;
-    let audioEnabled = false;
-
-    function initAudio() {
-        if (audioCtx) return;
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    window.dbCliente = null;
+    
+    function arrancarSistemaSala() {
+        const libSupabase = window.supabase || window.supabasejs;
+        if (libSupabase) {
+            window.dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            renderizarPizarra();
+            cargarYComprobarPlatos();
+            setInterval(cargarYComprobarPlatos, 3000);
+        }
     }
 
-    function playBeep(freq = 800, duration = 0.2, volume = 0.5) {
-        if (!audioCtx || !audioEnabled) return;
+    async function retirarPlato(id) {
+        if (!window.dbCliente) return;
+        platosEnPase = platosEnPase.filter(p => String(p.id) !== String(id));
+        renderizarPizarra();
+        try { await window.dbCliente.from('platos').delete().eq('id', id); } catch (e) {}
+    }
+    
+    async function cargarYComprobarPlatos() {
+        if (!window.dbCliente) return;
+        cambiarTextoEstado("🔄 Sincronizando...", "estado-buscando");
+        
         try {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.value = freq;
-            gain.gain.value = volume;
-            osc.type = 'sine';
-            osc.start();
-            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.stop(audioCtx.currentTime + duration);
-        } catch(e) { console.warn("Audio error", e); }
-    }
+            const { data, error } = await window.dbCliente.from('platos').select('*').order('timestamp', { ascending: false });
+            if (error) return;
 
-    function sonidoNuevoPlato() {
-        if (!audioEnabled) return;
-        playBeep(1200, 0.1, 0.8);
-        setTimeout(() => playBeep(800, 0.2, 0.9), 100);
-    }
-
-    function sonidoPanico() {
-        if (!audioEnabled) return;
-        playBeep(400, 0.3, 1.0);
-        setTimeout(() => playBeep(600, 0.3, 1.0), 150);
-        setTimeout(() => playBeep(800, 0.4, 1.0), 300);
-    }
-
-    // Botón para probar sonido y desbloquear AudioContext
-    document.getElementById('btnTestSound').addEventListener('click', () => {
-        initAudio();
-        audioCtx.resume().then(() => {
-            audioEnabled = true;
-            playBeep(880, 0.2, 0.8);
-            addLog("🔊 Sonido activado manualmente");
-            document.getElementById('btnTestSound').style.background = '#059669';
-        }).catch(e => addLog("❌ Error al activar audio: " + e.message));
-    });
-
-    // ---------- NOTIFICACIONES (para el reloj por Bluetooth) ----------
-    function pedirPermisoNotificaciones() {
-        if (!("Notification" in window)) {
-            addLog("❌ Este navegador no soporta notificaciones");
-            return;
-        }
-        if (Notification.permission === "default") {
-            Notification.requestPermission().then(perm => {
-                addLog(`📢 Permiso de notificaciones: ${perm}`);
-            });
-        } else {
-            addLog(`📢 Estado notificaciones: ${Notification.permission}`);
-        }
-    }
-
-    function enviarNotificacion(mesa, plato, camarero) {
-        if (!("Notification" in window)) return;
-        if (Notification.permission === "granted") {
-            new Notification(`🍽️ Mesa ${mesa}`, {
-                body: `${plato} · ${camarero}`,
-                icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2338bdf8'/%3E%3Ctext x='50' y='67' text-anchor='middle' font-size='40' fill='white'%3E🍽%3C/text%3E%3C/svg%3E",
-                vibrate: [200, 100, 200]
-            });
-            addLog(`🔔 Notificación enviada: Mesa ${mesa} - ${plato}`);
-        }
-    }
-
-    // ---------- RENDERIZAR PLATOS ----------
-    function renderizarPlatos() {
-        const container = document.getElementById('platosContainer');
-        if (!container) return;
-        if (platosActuales.length === 0) {
-            container.innerHTML = '<div class="vacio">✨ Pase limpio. Esperando comandas...</div>';
-            return;
-        }
-        container.innerHTML = platosActuales.map(plato => `
-            <div class="tarjeta">
-                <div class="mesa">${escapeHtml(plato.mesa)}</div>
-                <div class="camarero">🏃‍♂️ ${escapeHtml(plato.camarero || 'Sala')}</div>
-                <div class="plato">${escapeHtml(plato.icono || '🍽️')} ${escapeHtml(plato.preparacion)}</div>
-                <button class="btn-retirar" onclick="retirarPlato('${plato.id}')">✅ Plato servido</button>
-            </div>
-        `).join('');
-    }
-
-    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-
-    // ---------- RETIRAR PLATO ----------
-    window.retirarPlato = async function(id) {
-        if (!supabaseClient) return;
-        addLog(`🗑️ Retirando plato ID ${id}`);
-        try {
-            await supabaseClient.from('platos').delete().eq('id', id);
-            platosActuales = platosActuales.filter(p => p.id != id);
-            renderizarPlatos();
-        } catch(e) {
-            addLog(`❌ Error al retirar: ${e.message}`);
-        }
-    };
-
-    // ---------- CARGAR PLATOS EXISTENTES ----------
-    async function cargarPlatosIniciales() {
-        if (!supabaseClient) return;
-        try {
-            const { data, error } = await supabaseClient
-                .from('platos')
-                .select('*')
-                .order('timestamp', { ascending: false });
-            if (error) throw error;
-            const normales = (data || []).filter(p => p.mesa !== 'TIMBRE');
-            platosActuales = normales;
-            renderizarPlatos();
-            addLog(`📋 Cargados ${normales.length} platos pendientes`);
-            document.getElementById('statusBadge').innerHTML = '🟢 Conectado';
-            document.getElementById('statusBadge').className = 'estado ok';
-        } catch(e) {
-            addLog(`❌ Error cargando platos: ${e.message}`);
-            document.getElementById('statusBadge').innerHTML = '⚠️ Error con Supabase';
-            document.getElementById('statusBadge').className = 'estado error';
-        }
-    }
-
-    // ---------- REALTIME: ESCUCHAR NUEVOS PLATOS ----------
-    function iniciarRealtime() {
-        if (!supabaseClient) return;
-        const channel = supabaseClient
-            .channel('sala-listener')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'platos' }, payload => {
-                const nuevo = payload.new;
-                addLog(`📡 INSERT recibido: Mesa ${nuevo.mesa} - ${nuevo.preparacion}`);
-                
-                if (nuevo.mesa === 'TIMBRE') {
-                    // Alarma de pánico
-                    sonidoPanico();
-                    enviarNotificacion("TIMBRE", "⚠️ PÁNICO EN COCINA", "Sistema");
-                    addLog("🚨 TIMBRE DE PÁNICO DETECTADO");
-                    // Borrar el timbre automáticamente
+            if (data) {
+                const hayTimbre = data.some(p => p.mesa === 'TIMBRE' && p.preparacion === 'PANICO');
+                if (hayTimbre) {
+                    recibirTimbrazo(); 
                     setTimeout(async () => {
-                        if (supabaseClient) await supabaseClient.from('platos').delete().eq('id', nuevo.id);
+                        if (window.dbCliente) {
+                            await window.dbCliente.from('platos').delete().eq('mesa', 'TIMBRE');
+                        }
                     }, 500);
-                    return;
                 }
-                
-                // Evitar duplicados
-                if (platosActuales.some(p => p.id === nuevo.id)) return;
-                
-                // Agregar al inicio
-                platosActuales.unshift(nuevo);
-                renderizarPlatos();
-                
-                // Sonido y notificación
-                sonidoNuevoPlato();
-                enviarNotificacion(nuevo.mesa, nuevo.preparacion, nuevo.camarero || 'Camarero');
-            })
-            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'platos' }, payload => {
-                const eliminado = payload.old;
-                addLog(`🗑️ DELETE recibido: ID ${eliminado.id}`);
-                platosActuales = platosActuales.filter(p => p.id !== eliminado.id);
-                renderizarPlatos();
-            })
-            .subscribe((status) => {
-                addLog(`🔌 Estado canal Realtime: ${status}`);
-                if (status === 'SUBSCRIBED') {
-                    document.getElementById('statusBadge').innerHTML = '🟢 En línea · Realtime activo';
-                    document.getElementById('statusBadge').className = 'estado ok';
-                } else if (status === 'CHANNEL_ERROR') {
-                    document.getElementById('statusBadge').innerHTML = '⚠️ Error Realtime';
-                    document.getElementById('statusBadge').className = 'estado error';
+
+                const platosNuevos = data.filter(p => p.mesa !== 'TIMBRE');
+                if (platosNuevos.length > platosEnPase.length) {
+                    sonarTimbrePaseFuerte(); 
                 }
-            });
+
+                platosEnPase = platosNuevos;
+                renderizarPizarra();
+                cambiarTextoEstado("🟢 En Línea · Escuchando", "");
+            }
+        } catch (e) { cambiarTextoEstado("❌ Sin señal", "estado-error"); }
     }
 
-    // ---------- LOG EN PANTALLA ----------
-    function addLog(msg) {
-        const logDiv = document.getElementById('logPanel');
-        if (!logDiv) return;
-        const time = new Date().toLocaleTimeString();
-        logDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
-        logDiv.scrollTop = logDiv.scrollHeight;
-        console.log(msg);
-    }
-
-    // ---------- INICIO ----------
-    window.addEventListener('load', () => {
-        addLog("🚀 Iniciando Fredware Sala...");
-        // Inicializar Supabase
-        if (window.supabase) {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            addLog("✅ Cliente Supabase creado");
-            cargarPlatosIniciales();
-            iniciarRealtime();
-        } else {
-            addLog("❌ Librería Supabase no cargada. Revisa la conexión a Internet.");
-            document.getElementById('statusBadge').innerHTML = '❌ Supabase no disponible';
-            document.getElementById('statusBadge').className = 'estado error';
-        }
-        
-        // Pedir permiso de notificaciones
-        pedirPermisoNotificaciones();
-        
-        // Preparar audio (no activado hasta que el usuario haga clic en el botón)
-        initAudio();
-        addLog("🔇 Audio desbloqueable con el botón 'Probar Sonido'");
-    });
+    window.onload = arrancarSistemaSala;
 </script>
 </body>
 </html>
