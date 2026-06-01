@@ -54,7 +54,6 @@
           try {
             await OneSignal.init({
               appId: "391506e2-682c-4564-b726-9a9f366fdde8",
-              safari_web_id: "web.onesignal.auto.014ea808-90d0-46f9-a566-af81aa1c1278",
               allowLocalhostAsSecureOrigin: true 
             });
             await OneSignal.Notifications.requestPermission();
@@ -68,14 +67,14 @@
         let audioContext = null;
         let audioUnlocked = false;
         
-        // 🔊 TRALLAZO ACÚSTICO INDUSTRIAL MEJORADO (Square + Sawtooth a volumen 1.0)
+        // 🔊 AUDIO INDUSTRIAL DE MÁXIMA POTENCIA (Square + Sawtooth a 1.0)
         function sonarTimbrePaseFuerte() {
             if (!audioContext || !audioUnlocked) return;
             try {
-                // Primer golpe: Onda cuadrada penetrante para romper el ruido
+                // Golpe agudo inicial con onda cuadrada (rompe el barullo)
                 tocarFrecuenciaMetálica(1400, 'square', 0.15, 0.9);
                 
-                // Segundo golpe (90ms después): Onda diente de sierra ruidosa (Volumen 100%)
+                // Segundo golpe ruidoso con onda diente de sierra al 100% de volumen
                 setTimeout(() => {
                     tocarFrecuenciaMetálica(1100, 'sawtooth', 0.35, 1.0); 
                 }, 90);
@@ -86,7 +85,7 @@
             if (!audioContext || !audioUnlocked) return;
             try {
                 let osc = audioContext.createOscillator();
-                let gain = application.createGain ? application.createGain() : audioContext.createGain();
+                let gain = audioContext.createGain();
                 osc.connect(gain);
                 gain.connect(audioContext.destination);
                 
@@ -103,7 +102,6 @@
             } catch(e){}
         }
 
-        // Motor de audio adaptado para procesar distorsiones armónicas con fuerza
         function tocarFrecuenciaMetálica(frec, tipoOnda, duracion, vol) {
             let osc = audioContext.createOscillator();
             let gain = audioContext.createGain();
@@ -129,7 +127,7 @@
                 sonarTimbrePaseFuerte(); 
                 const btn = document.getElementById('btn-audio');
                 if(btn) {
-                    btn.innerHTML = "🔔 ALTAVOZ EN MODO INDUSTRIAL";
+                    btn.innerHTML = "🔔 ALTAVOZ INDUSTRIAL ACTIVO";
                     btn.style.background = "#475569";
                     btn.style.boxShadow = "none";
                 }
@@ -181,71 +179,4 @@
             <path d="M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z" fill="#0f172a"/>
             <path d="M224 200h64v10h-64z" fill="#0f172a"/>
         </svg>
-        <h1>FREDWARE <span>PASE</span></h1>
-    </div>
-    <div id="marcador-estado" class="marcador-conexion">⏳ Inicializando...</div>
-    <button id="btn-audio" class="btn-audio" onclick="desbloquearAudio()">🔊 COMPROBAR ALTAVOZ (POTENCIA MAX)</button>
-</div>
-
-<div class="grid-alertas" id="pizarra-comandas"> 
-    <div class="pizarra-vaciva">Cargando pase...</div> 
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
-<script>
-    const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw";
-    window.dbCliente = null;
-    
-    function arrancarSistemaSala() {
-        const libSupabase = window.supabase || window.supabasejs;
-        if (libSupabase) {
-            window.dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            renderizarPizarra();
-            cargarYComprobarPlatos();
-            setInterval(cargarYComprobarPlatos, 3000);
-        }
-    }
-
-    async function retirarPlato(id) {
-        if (!window.dbCliente) return;
-        platosEnPase = platosEnPase.filter(p => String(p.id) !== String(id));
-        renderizarPizarra();
-        try { await window.dbCliente.from('platos').delete().eq('id', id); } catch (e) {}
-    }
-    
-    async function cargarYComprobarPlatos() {
-        if (!window.dbCliente) return;
-        cambiarTextoEstado("🔄 Sincronizando...", "estado-buscando");
-        
-        try {
-            const { data, error } = await window.dbCliente.from('platos').select('*').order('timestamp', { ascending: false });
-            if (error) return;
-
-            if (data) {
-                const hayTimbre = data.some(p => p.mesa === 'TIMBRE' && p.preparacion === 'PANICO');
-                if (hayTimbre) {
-                    recibirTimbrazo(); 
-                    setTimeout(async () => {
-                        if (window.dbCliente) {
-                            await window.dbCliente.from('platos').delete().eq('mesa', 'TIMBRE');
-                        }
-                    }, 500);
-                }
-
-                const platosNuevos = data.filter(p => p.mesa !== 'TIMBRE');
-                if (platosNuevos.length > platosEnPase.length) {
-                    sonarTimbrePaseFuerte(); 
-                }
-
-                platosEnPase = platosNuevos;
-                renderizarPizarra();
-                cambiarTextoEstado("🟢 En Línea · Escuchando", "");
-            }
-        } catch (e) { cambiarTextoEstado("❌ Sin señal", "estado-error"); }
-    }
-
-    window.onload = arrancarSistemaSala;
-</script>
-</body>
-</html>
+        <h1>FREDWARE <span>PASE</span>
