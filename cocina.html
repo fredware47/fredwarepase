@@ -56,6 +56,7 @@
             document.getElementById('txt-mesa').innerText = mesaActual.length > 0 ? "MESA " + mesaActual : "---";
         }
 
+        // 🔓 CONFIGURACIÓN DE PERSONAL INTACTA (Para editar tus nombres)
         function abrirConfiguracion() {
             document.getElementById('cfg-cam1').value = camarerosTurno[0] || "";
             document.getElementById('cfg-cam2').value = camarerosTurno[1] || "";
@@ -188,18 +189,17 @@
         });
     }, 500);
 
-    async function dispararAvisoPushAlReloj(codigoZona, mesa, tipoPlato, emoji) {
+    // 🚀 ENVÍO GLOBAL SIN FILTROS: Llega a todos los terminales a la vez con el nombre inyectado
+    async function dispararAvisoPushAlReloj(codigoZona, mesa, tipoPlato, emoji, nombreCamarero) {
         window.OneSignalDeferred.push(async function(OneSignal) {
             try {
                 await OneSignal.Notifications.sendNotification({
                     auth: null, 
-                    filters: codigoZona === "SALA" 
-                        ? [{"field": "session_count", "relation": ">", "value": "0"}] 
-                        : [{"field": "tag", "key": "camarero", "relation": "=", "value": codigoZona}],
-                    contents: { "es": `${emoji} Mesa ${mesa}: ${tipoPlato} listo!` },
+                    filters: [{"field": "session_count", "relation": ">", "value": "0"}],
+                    contents: { "es": `🏃‍♂️ ${nombreCamarero} -> ${emoji} Mesa ${mesa}: ${tipoPlato} listo!` },
                     headings: { "es": `Fredware Pase 🛎️` }
                 });
-            } catch(err) { console.error("Error al disparar Push nativo:", err); }
+            } catch(err) { console.error("Error al disparar Push global:", err); }
         });
     }
 
@@ -207,7 +207,9 @@
         if (!mesaActual || mesaActual === "") { alert("⚠️ Fred, marca primero la mesa."); return; }
         const selector = document.getElementById('sel-camarero');
         const zonaElegidaValue = selector.value; 
-        const textoParaPizarra = selector.options[selector.selectedIndex].text.replace('🏃‍♂️ ', ''); 
+        
+        // Extraemos el nombre dinámico editado del camarero para el mensaje de muñeca
+        const nombreCamarero = selector.options[selector.selectedIndex].text.replace('🏃‍♂️ ', '').split(' (')[0];
         const mesaAEnviar = String(mesaActual).trim(); 
         borrarPantalla(); 
 
@@ -215,12 +217,13 @@
         try {
             const { error } = await window.dbCliente.from('platos').insert([{
                 mesa: mesaAEnviar,
-                camarero: String(textoParaPizarra).trim(),
+                camarero: String(selector.options[selector.selectedIndex].text.replace('🏃‍♂️ ', '')).trim(),
                 preparacion: String(tipo).trim(),
                 icono: String(icono).trim(),
                 timestamp: new Date().toISOString()
             }]);
-            if (!error) dispararAvisoPushAlReloj(zonaElegidaValue, mesaAEnviar, tipo, icono);
+            
+            if (!error) dispararAvisoPushAlReloj(zonaElegidaValue, mesaAEnviar, tipo, icono, nombreCamarero);
         } catch(e) { console.error(e); }
     }
 
@@ -234,7 +237,7 @@
                 camarero: 'SISTEMA', 
                 icono: '🚨' 
             }]);
-            dispararAvisoPushAlReloj("SALA", "¡TIMBRE!", "🚨 PÁNICO EN COCINA", "🚨");
+            dispararAvisoPushAlReloj("SALA", "¡TIMBRE!", "🚨 PÁNICO EN COCINA", "🚨", "TODOS");
         } catch(e){}
     }
 </script>
