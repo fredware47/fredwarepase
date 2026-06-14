@@ -1,16 +1,13 @@
-// shared.js
-// Configuración centralizada
+// shared.js - Versión adaptada a tu proyecto (solo tabla platos)
 const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw";
 const ONESIGNAL_APP_ID = "391506e2-682c-4564-b726-9a9f366fdde8";
 
-// Elementos comunes
 let supabaseClient = null;
 let audioContext = null;
 let audioUnlocked = false;
 let currentVolume = 0.8;
 let isMuted = false;      // para silencio temporal en sala
-let globalLogs = [];      // almacén local de logs
 
 // Inicializar Supabase
 function initSupabase() {
@@ -26,7 +23,6 @@ function initSupabase() {
 function preloadAudio() {
   if (audioContext) return;
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  // Lo dejamos suspendido hasta que el usuario interactúe
 }
 
 function unlockAudio() {
@@ -167,7 +163,6 @@ async function clearPendingActions() {
   return new Promise((resolve) => { tx.oncomplete = resolve; });
 }
 
-// Procesar cola cuando haya conexión
 async function processOfflineQueue() {
   if (!supabaseClient) return;
   const actions = await getPendingActions();
@@ -176,14 +171,8 @@ async function processOfflineQueue() {
     try {
       if (action.type === "INSERT_PLATO") {
         const { error } = await supabaseClient.from("platos").insert([action.data]);
-        if (!error) {
-          // también enviar notificación push si aplica
-          if (action.pushData) {
-            sendPushNotification(action.pushData);
-          }
-        } else {
-          // reintentar después
-          return;
+        if (!error && action.pushData) {
+          sendPushNotification(action.pushData);
         }
       } else if (action.type === "DELETE_PLATO") {
         await supabaseClient.from("platos").delete().eq("id", action.id);
@@ -202,11 +191,9 @@ async function initOneSignal(tags = {}) {
       appId: ONESIGNAL_APP_ID,
       allowLocalhostAsSecureOrigin: true,
     });
-    // Registrar tags si se proporcionan
     if (Object.keys(tags).length > 0) {
       await OneSignal.User.addTags(tags);
     }
-    // Solicitar permiso si no está concedido
     const permission = await OneSignal.Notifications.permission;
     if (!permission) {
       await OneSignal.Notifications.requestPermission();
@@ -236,35 +223,13 @@ async function sendPushNotification(details) {
   });
 }
 
-// ======================== LOGGING ========================
-async function addLog(entry) {
-  const logEntry = { ...entry, timestamp: new Date().toISOString() };
-  globalLogs.push(logEntry);
-  if (supabaseClient) {
-    try {
-      await supabaseClient.from("logs").insert([logEntry]);
-    } catch (e) {}
-  }
-  // mantener solo últimos 100 logs en memoria
-  if (globalLogs.length > 100) globalLogs.shift();
-}
-
-// ======================== CONFIGURACIÓN DE PERSONAL (Supabase) ========================
+// ======================== CONFIGURACIÓN DE PERSONAL (solo localStorage) ========================
 let camarerosTurno = ["DANIELA", "CARLOS", "ELENA", "JAVI"];
 const zonasMapeadas = ["BARRA", "SALON", "TERRAZA", "APOYO"];
 
-async function loadPersonalConfig() {
-  if (!supabaseClient) return;
-  const { data, error } = await supabaseClient.from("config").select("value").eq("key", "personal").single();
-  if (!error && data) {
-    try {
-      const parsed = JSON.parse(data.value);
-      if (Array.isArray(parsed)) camarerosTurno = parsed;
-    } catch(e) {}
-  }
-  // si no hay en Supabase, usar localStorage como fallback
+function loadPersonalConfig() {
   const local = localStorage.getItem("fredware_personal_servicio");
-  if (local && (!data || error)) {
+  if (local) {
     try {
       const parsed = JSON.parse(local);
       if (Array.isArray(parsed)) camarerosTurno = parsed;
@@ -272,14 +237,9 @@ async function loadPersonalConfig() {
   }
 }
 
-async function savePersonalConfig(camareros) {
-  if (!supabaseClient) return;
-  try {
-    await supabaseClient.from("config").upsert({ key: "personal", value: JSON.stringify(camareros) });
-    localStorage.setItem("fredware_personal_servicio", JSON.stringify(camareros));
-  } catch(e) {
-    localStorage.setItem("fredware_personal_servicio", JSON.stringify(camareros));
-  }
+function savePersonalConfig(camareros) {
+  localStorage.setItem("fredware_personal_servicio", JSON.stringify(camareros));
+  camarerosTurno = camareros;
 }
 
 // Exportar funciones globales
@@ -295,7 +255,6 @@ window.Fredware = {
   processOfflineQueue,
   initOneSignal,
   sendPushNotification,
-  addLog,
   loadPersonalConfig,
   savePersonalConfig,
   camarerosTurno,
@@ -311,8 +270,6 @@ window.addEventListener("DOMContentLoaded", () => {
   initSupabase();
   preloadAudio();
   loadPersonalConfig();
-  // Procesar cola offline al inicio
-  window.Fredware.processOfflineQueue();
-  // Escuchar cambios de conexión
-  window.addEventListener("online", () => window.Fredware.processOfflineQueue());
+  processOfflineQueue();
+  window.addEventListener("online", () => processOfflineQueue());
 });
