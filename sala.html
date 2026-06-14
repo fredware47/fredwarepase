@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fredware Pase - Recepción Sala</title>
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%2338bdf8'/><path d='M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z' fill='%230f172a'/><path d='M224 200h64v10h-64z' fill='%230f172a'/></svg>">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#0f172a">
+    <meta name="apple-mobile-web-app-title" content="Fredware Pase">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%2338bdf8'/><path d='M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z' fill='%230f172a'/><path d='M224 200h64v10h-64z' fill='%230f172a'/></svg>">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; padding: 15px; transition: background-color 0.1s; user-select: none; } 
+        
+        .cabecero-pro { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .marca-contenedor { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .logo-svg { width: 32px; height: 32px; transform: drop-shadow(0px 2px 4px rgba(0,0,0,0.5)); }
+        .cabecero-pro h1 { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; }
+        .cabecero-pro h1 span { color: #38bdf8; }
+        
+        .marcador-conexion { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; background: #334155; color: #94a3b8; letter-spacing: 0.5px; }
+        .estado-buscando { background: #1e3a8a; color: #93c5fd; animation: parpadeo 2s infinite; }
+        .estado-error { background: #991b1b; color: #fca5a5; }
+        
+        .grid-alertas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; } 
+        .tarjeta-plato { background: #1e293b; border: 2px solid #334155; border-radius: 16px; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); } 
+        .numero-mesa { font-size: 54px; font-weight: 900; color: #ffffff; font-family: monospace; } 
+        .camarero-tag { font-size: 13px; color: #34d399; font-weight: bold; margin-bottom: 8px; background: rgba(52,211,153,0.1); padding: 5px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; } 
+        .tipo-preparacion { font-size: 15px; font-weight: bold; text-transform: uppercase; padding: 6px; border-radius: 8px; background: rgba(0,0,0,0.3); margin-bottom: 15px; } 
+        
+        .btn-retirar { background: #ef4444; color: white; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; padding: 12px; cursor: pointer; width: 100%; transition: 0.1s; box-shadow: 0 4px 0 #b91c1c; }
+        .btn-retirar:active { transform: translateY(4px); box-shadow: none; }
+        
+        .pizarra-vaciva { grid-column: 1 / -1; text-align: center; padding: 60px; color: #475569; font-size: 18px; font-style: italic; border: 2px dashed #334155; border-radius: 16px; background: #111827; } 
+        body.ataque-saco { background-color: #ef4444 !important; transition: 0.05s; } 
+        
+        .btn-audio { background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 900; font-size: 15px; margin-top: 10px; cursor: pointer; width: 100%; max-width: 320px; box-shadow: 0 4px 0 #065f46; text-transform: uppercase; letter-spacing: 0.5px; transition: 0.1s; }
+        .btn-audio:active { transform: translateY(4px); box-shadow: none; }
+        
+        @keyframes parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    </style>
+
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      setTimeout(() => {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          try {
+            await OneSignal.init({
+              appId: "391506e2-682c-4564-b726-9a9f366fdde8",
+              allowLocalhostAsSecureOrigin: true 
+            });
+            await OneSignal.Notifications.requestPermission();
+          } catch(e) { console.warn(e); }
+        });
+      }, 500);
+    </script>
+
+    <script>
+        let platosEnPase = [];
+        let audioContext = null;
+        let audioUnlocked = false;
+        
+        // 🔊 AUDIO INDUSTRIAL DE MÁXIMA POTENCIA (Square + Sawtooth a 1.0)
+        function sonarTimbrePaseFuerte() {
+            if (!audioContext || !audioUnlocked) return;
+            try {
+                // Golpe agudo inicial con onda cuadrada (rompe el barullo)
+                tocarFrecuenciaMetálica(1400, 'square', 0.15, 0.9);
+                
+                // Segundo golpe ruidoso con onda diente de sierra al 100% de volumen
+                setTimeout(() => {
+                    tocarFrecuenciaMetálica(1100, 'sawtooth', 0.35, 1.0); 
+                }, 90);
+            } catch(e){}
+        }
+
+        function sonarAlarmaPanicoFuerte() {
+            if (!audioContext || !audioUnlocked) return;
+            try {
+                let osc = audioContext.createOscillator();
+                let gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                osc.type = 'sawtooth'; 
+                osc.frequency.setValueAtTime(500, audioContext.currentTime);
+                osc.frequency.linearRampToValueAtTime(950, audioContext.currentTime + 0.2);
+                osc.frequency.linearRampToValueAtTime(500, audioContext.currentTime + 0.4);
+                
+                gain.gain.setValueAtTime(0.8, audioContext.currentTime); 
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+                
+                osc.start();
+                osc.stop(audioContext.currentTime + 0.5);
+            } catch(e){}
+        }
+
+        function tocarFrecuenciaMetálica(frec, tipoOnda, duracion, vol) {
+            let osc = audioContext.createOscillator();
+            let gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.type = tipoOnda; 
+            osc.frequency.setValueAtTime(frec, audioContext.currentTime);
+            
+            gain.gain.setValueAtTime(vol, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duracion);
+            
+            osc.start();
+            osc.stop(audioContext.currentTime + duracion);
+        }
+        
+        function desbloquearAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            audioContext.resume().then(() => {
+                audioUnlocked = true;
+                sonarTimbrePaseFuerte(); 
+                const btn = document.getElementById('btn-audio');
+                if(btn) {
+                    btn.innerHTML = "🔔 ALTAVOZ INDUSTRIAL ACTIVO";
+                    btn.style.background = "#475569";
+                    btn.style.boxShadow = "none";
+                }
+            });
+        }
+
+        function cambiarTextoEstado(texto, claseEstilo) {
+            const el = document.getElementById('marcador-estado');
+            if (el) { el.innerText = texto; el.className = "marcador-conexion " + claseEstilo; }
+        }
+        
+        function renderizarPizarra() {
+            const contenedor = document.getElementById('pizarra-comandas');
+            if (!contenedor) return;
+            contenedor.innerHTML = "";
+            if (platosEnPase.length === 0) {
+                contenedor.innerHTML = '<div class="pizarra-vaciva">Pase limpio. Esperando comandas...</div>';
+                return;
+            }
+            platosEnPase.forEach(plato => {
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'tarjeta-plato';
+                tarjeta.innerHTML = `
+                    <div>
+                        <div class="numero-mesa">${plato.mesa}</div>
+                        <div class="camarero-tag">🏃‍♂️ LLEVA: ${plato.camarero || '?'}</div>
+                        <div class="tipo-preparacion">${plato.icono || '🍽️'} ${plato.preparacion}</div>
+                    </div>
+                    <button class="btn-retirar" onclick="retirarPlato('${plato.id}')">👋 PLATO LLEVADO</button>
+                `;
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
+        function recibirTimbrazo() {
+            sonarAlarmaPanicoFuerte(); 
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+            document.body.classList.add('ataque-saco');
+            setTimeout(() => document.body.classList.remove('ataque-saco'), 250);
+        }
+    </script>
+</head>
+<body>
+
+<div class="cabecero-pro">
+    <div class="marca-contenedor">
+        <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+            <circle cx="256" cy="256" r="240" fill="#38bdf8"/>
+            <path d="M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z" fill="#0f172a"/>
+            <path d="M224 200h64v10h-64z" fill="#0f172a"/>
+        </svg>
+        <h1>FREDWARE <span>PASE</span></h1>
+    </div>
+    <div id="marcador-estado" class="marcador-conexion">⏳ Inicializando...</div>
+    <button id="btn-audio" class="btn-audio" onclick="desbloquearAudio()">🔊 COMPROBAR ALTAVOZ (POTENCIA MAX)</button>
+</div>
+
+<div class="grid-alertas" id="pizarra-comandas"> 
+    <div class="pizarra-vaciva">Cargando pase...</div> 
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+<script>
+    const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw";
+    window.dbCliente = null;
+    
+    function arrancarSistemaSala() {
+        const libSupabase = window.supabase || window.supabasejs;
+        if (libSupabase) {
+            window.dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            renderizarPizarra();
+            cargarYComprobarPlatos();
+            setInterval(cargarYComprobarPlatos, 3000);
+        }
+    }
+
+    async function retirarPlato(id) {
+        if (!window.dbCliente) return;
+        platosEnPase = platosEnPase.filter(p => String(p.id) !== String(id));
+        renderizarPizarra();
+        try { await window.dbCliente.from('platos').delete().eq('id', id); } catch (e) {}
+    }
+    
+    async function cargarYComprobarPlatos() {
+        if (!window.dbCliente) return;
+        cambiarTextoEstado("🔄 Sincronizando...", "estado-buscando");
+        
+        try {
+            const { data, error } = await window.dbCliente.from('platos').select('*').order('timestamp', { ascending: false });
+            if (error) return;
+
+            if (data) {
+                const hayTimbre = data.some(p => p.mesa === 'TIMBRE' && p.preparacion === 'PANICO');
+                if (hayTimbre) {
+                    recibirTimbrazo(); 
+                    setTimeout(async () => {
+                        if (window.dbCliente) {
+                            await window.dbCliente.from('platos').delete().eq('mesa', 'TIMBRE');
+                        }
+                    }, 500);
+                }
+
+                const platosNuevos = data.filter(p => p.mesa !== 'TIMBRE');
+                if (platosNuevos.length > platosEnPase.length) {
+                    sonarTimbrePaseFuerte(); 
+                }
+
+                platosEnPase = platosNuevos;
+                renderizarPizarra();
+                cambiarTextoEstado("🟢 En Línea · Escuchando", "");
+            }
+        } catch (e) { cambiarTextoEstado("❌ Sin señal", "estado-error"); }
+    }
+
+    window.onload = arrancarSistemaSala;
+</script>
+</body>
+</html>

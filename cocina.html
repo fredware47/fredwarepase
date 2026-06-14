@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fredware Pase - Cocina Conectada</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; padding: 15px; }
+        .container { max-width: 850px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; }
+        .panel { background: #1e293b; border-radius: 16px; padding: 20px; border: 1px solid #334155; display: flex; flex-direction: column; position: relative; }
+        h2 { font-size: 18px; color: #34d399; margin-bottom: 15px; text-transform: uppercase; border-bottom: 2px solid #334155; padding-bottom: 8px; text-align: center; }
+        .pantalla-mesa { background: #020617; font-family: monospace; font-size: 42px; color: #ffffff; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #475569; min-height: 65px; display: flex; align-items: center; justify-content: center; }
+        .teclado-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .btn-num { background: #334155; color: white; font-size: 24px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; padding: 15px; user-select: none; }
+        .btn-num:active { background: #475569; }
+        .btn-clear { background: #ef4444; }
+        .zona-camarero { display: flex; gap: 10px; margin-top: 15px; }
+        .selector-camarero { flex-grow: 1; padding: 15px; font-size: 18px; font-weight: bold; background: #020617; color: #38bdf8; border: 2px solid #475569; border-radius: 8px; cursor: pointer; text-align: center; }
+        .btn-config { background: #475569; color: white; border: none; border-radius: 8px; padding: 0 15px; font-size: 20px; cursor: pointer; }
+        .opciones-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .btn-opcion { color: white; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; padding: 20px; text-align: left; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.2); user-select: none; }
+        .opt-entrante { background: #eab308; } .opt-segundo { background: #3b82f6; } .opt-dia { background: #a855f7; }      
+        .opt-postre { background: #ec4899; } .opt-llevar { background: #f97316; } .opt-listo { background: #10b981; }    
+        .btn-opcion:active { opacity: 0.8; transform: scale(0.98); }
+        .btn-dar-saco { background: #ef4444; color: #ffffff; font-size: 18px; font-weight: 900; border: 3px solid #dc2626; padding: 18px; border-radius: 12px; cursor: pointer; margin-top: 15px; text-align: center; box-shadow: 0 6px 0 #991b1b; transition: all 0.1s; text-transform: uppercase; letter-spacing: 1px;}
+        .btn-dar-saco:active { transform: translateY(4px); box-shadow: 0 2px 0 #991b1b; background: #b91c1c; }
+        .modal-config { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
+        .modal-content { background: #1e293b; border: 2px solid #475569; padding: 20px; border-radius: 16px; max-width: 400px; width: 100%; }
+        .modal-content h3 { color: #34d399; margin-bottom: 15px; text-align: center; font-size: 18px; text-transform: uppercase; }
+        .modal-content label { display: block; margin-top: 10px; font-size: 13px; color: #94a3b8; font-weight: bold; }
+        .modal-content input { width: 100%; padding: 12px; margin-top: 5px; background: #020617; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 16px; font-weight: bold; text-transform: uppercase; }
+        .btn-guardar-config { background: #10b981; color: white; border: none; width: 100%; padding: 14px; margin-top: 20px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        @media (max-width: 650px) { .container { grid-template-columns: 1fr; } }
+    </style>
+
+    <script>
+        let mesaActual = "";
+        let camarerosTurno = ["DANIELA", "CARLOS", "ELENA", "JAVI"];
+        const zonasMapeadas = ["BARRA", "SALON", "TERRAZA", "APOYO"];
+
+        function marcarNumero(num) {
+            if (mesaActual.length < 4) {
+                mesaActual += num;
+                document.getElementById('txt-mesa').innerText = "MESA " + mesaActual;
+            }
+        }
+
+        function borrarPantalla() {
+            mesaActual = "";
+            document.getElementById('txt-mesa').innerText = "---";
+        }
+
+        function borrarUltimo() {
+            mesaActual = mesaActual.slice(0, -1);
+            document.getElementById('txt-mesa').innerText = mesaActual.length > 0 ? "MESA " + mesaActual : "---";
+        }
+
+        // 🔓 CONFIGURACIÓN DE PERSONAL INTACTA (Para editar tus nombres)
+        function abrirConfiguracion() {
+            document.getElementById('cfg-cam1').value = camarerosTurno[0] || "";
+            document.getElementById('cfg-cam2').value = camarerosTurno[1] || "";
+            document.getElementById('cfg-cam3').value = camarerosTurno[2] || "";
+            document.getElementById('cfg-cam4').value = camarerosTurno[3] || "";
+            document.getElementById('modal-personal').style.display = "flex";
+        }
+
+        function guardarConfiguracion() {
+            const c1 = document.getElementById('cfg-cam1').value.trim().toUpperCase();
+            const c2 = document.getElementById('cfg-cam2').value.trim().toUpperCase();
+            const c3 = document.getElementById('cfg-cam3').value.trim().toUpperCase();
+            const c4 = document.getElementById('cfg-cam4').value.trim().toUpperCase();
+            
+            camarerosTurno = [c1, c2, c3, c4];
+            localStorage.setItem('fredware_personal_servicio', JSON.stringify(camarerosTurno));
+            
+            actualizarDesplegableCocina();
+            document.getElementById('modal-personal').style.display = "none";
+        }
+
+        function actualizarDesplegableCocina() {
+            const select = document.getElementById('sel-camarero');
+            if(select) {
+                select.innerHTML = '<option value="SALA">👤 GENERAL / TODA LA SALA</option>';
+                camarerosTurno.forEach((nombre, index) => {
+                    if (nombre && nombre.trim() !== "") {
+                        const limpio = nombre.trim().toUpperCase();
+                        const zonaAsignada = zonasMapeadas[index];
+                        select.innerHTML += `<option value="${zonaAsignada}">🏃‍♂️ ${limpio} (${zonaAsignada})</option>`;
+                    }
+                });
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const guardados = localStorage.getItem('fredware_personal_servicio');
+            if (guardados) {
+                try { 
+                    const parseado = JSON.parse(guardados);
+                    if (Array.isArray(parseado)) {
+                        camarerosTurno = [parseado[0]||"", parseado[1]||"", parseado[2]||"", parseado[3]||""];
+                    }
+                } catch(e){}
+            }
+            actualizarDesplegableCocina();
+        });
+    </script>
+</head>
+<body>
+
+<div style="text-align: center; margin-bottom: 15px;">
+    <h1>👨‍🍳 FREDWARE KITCHEN ALERT · PASE</h1>
+</div>
+
+<div class="container">
+    <div class="panel">
+        <h2>📌 Datos del Pase</h2>
+        <div class="pantalla-mesa" id="txt-mesa">---</div>
+        <div class="teclado-grid">
+            <button class="btn-num" onclick="marcarNumero('1')">1</button>
+            <button class="btn-num" onclick="marcarNumero('2')">2</button>
+            <button class="btn-num" onclick="marcarNumero('3')">3</button>
+            <button class="btn-num" onclick="marcarNumero('4')">4</button>
+            <button class="btn-num" onclick="marcarNumero('5')">5</button>
+            <button class="btn-num" onclick="marcarNumero('6')">6</button>
+            <button class="btn-num" onclick="marcarNumero('7')">7</button>
+            <button class="btn-num" onclick="marcarNumero('8')">8</button>
+            <button class="btn-num" onclick="marcarNumero('9')">9</button>
+            <button class="btn-num btn-clear" onclick="borrarPantalla()">C</button>
+            <button class="btn-num" onclick="marcarNumero('0')">0</button>
+            <button class="btn-num" style="background:#475569;" onclick="borrarUltimo()">⌫</button>
+        </div>
+
+        <div class="zona-camarero">
+            <select class="selector-camarero" id="sel-camarero">
+                <option value="SALA">👤 GENERAL / TODA LA SALA</option>
+            </select>
+            <button class="btn-config" onclick="abrirConfiguracion()">⚙️</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>🍽️ Despachar a Sala</h2>
+        <div class="opciones-grid">
+            <button class="btn-opcion opt-entrante" onclick="despacharPlato('ENTRANTE', '🥣')">🥣 1. ENTRANTES <span>➔</span></button>
+            <button class="btn-opcion opt-segundo" onclick="despacharPlato('SEGUNDO', '🥩')">🥩 2. SEGUNDOS <span>➔</span></button>
+            <button class="btn-opcion opt-dia" onclick="despacharPlato('PLATO DEL DIA', '🍲')">🍲 3. PLATO DEL DÍA <span>➔</span></button>
+            <button class="btn-opcion opt-postre" onclick="despacharPlato('POSTRE', '🍰')">🍰 4. POSTRES <span>➔</span></button>
+            <button class="btn-opcion opt-llevar" onclick="despacharPlato('PARA LLEVAR', '🛍️')">🛍️ 5. PARA LLEVAR <span>➔</span></button>
+            <button class="btn-opcion opt-listo" onclick="despacharPlato('LISTO', '✅')">✅ 6. LISTO <span>➔</span></button>
+        </div>
+        <button class="btn-dar-saco" onclick="darPorElSaco()">🛎️ DAR POR EL SACO</button>
+    </div>
+</div>
+
+<div class="modal-config" id="modal-personal">
+    <div class="modal-content">
+        <h3>⚙️ Personal del Servicio</h3>
+        <label>Asignar a BARRA:</label><input type="text" id="cfg-cam1" placeholder="Nombre en Barra">
+        <label>Asignar a SALÓN:</label><input type="text" id="cfg-cam2" placeholder="Nombre en Salón">
+        <label>Asignar a TERRAZA:</label><input type="text" id="cfg-cam3" placeholder="Nombre en Terraza">
+        <label>Asignar a APOYO:</label><input type="text" id="cfg-cam4" placeholder="Nombre en Apoyo">
+        <button class="btn-guardar-config" onclick="guardarConfiguracion()">💾 APLICAR CAMBIOS</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
+<script>
+    const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw"; 
+    
+    window.dbCliente = null;
+    try {
+        const libSupabase = window.supabase || window.supabasejs;
+        if (libSupabase) window.dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } catch(e) { console.error(e); }
+
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    setTimeout(() => {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                await OneSignal.init({
+                    appId: "391506e2-682c-4564-b726-9a9f366fdde8",
+                    allowLocalhostAsSecureOrigin: true 
+                });
+            } catch(e) { console.warn(e); }
+        });
+    }, 500);
+
+    // 🚀 ENVÍO GLOBAL SIN FILTROS: Llega a todos los terminales a la vez con el nombre inyectado
+    async function dispararAvisoPushAlReloj(codigoZona, mesa, tipoPlato, emoji, nombreCamarero) {
+        window.OneSignalDeferred.push(async function(OneSignal) {
+            try {
+                await OneSignal.Notifications.sendNotification({
+                    auth: null, 
+                    filters: [{"field": "session_count", "relation": ">", "value": "0"}],
+                    contents: { "es": `🏃‍♂️ ${nombreCamarero} -> ${emoji} Mesa ${mesa}: ${tipoPlato} listo!` },
+                    headings: { "es": `Fredware Pase 🛎️` }
+                });
+            } catch(err) { console.error("Error al disparar Push global:", err); }
+        });
+    }
+
+    async function despacharPlato(tipo, icono) {
+        if (!mesaActual || mesaActual === "") { alert("⚠️ Fred, marca primero la mesa."); return; }
+        const selector = document.getElementById('sel-camarero');
+        const zonaElegidaValue = selector.value; 
+        
+        // Extraemos el nombre dinámico editado del camarero para el mensaje de muñeca
+        const nombreCamarero = selector.options[selector.selectedIndex].text.replace('🏃‍♂️ ', '').split(' (')[0];
+        const mesaAEnviar = String(mesaActual).trim(); 
+        borrarPantalla(); 
+
+        if (!window.dbCliente) return;
+        try {
+            const { error } = await window.dbCliente.from('platos').insert([{
+                mesa: mesaAEnviar,
+                camarero: String(selector.options[selector.selectedIndex].text.replace('🏃‍♂️ ', '')).trim(),
+                preparacion: String(tipo).trim(),
+                icono: String(icono).trim(),
+                timestamp: new Date().toISOString()
+            }]);
+            
+            if (!error) dispararAvisoPushAlReloj(zonaElegidaValue, mesaAEnviar, tipo, icono, nombreCamarero);
+        } catch(e) { console.error(e); }
+    }
+
+    async function darPorElSaco() {
+        if (!window.dbCliente) return;
+        try {
+            await window.dbCliente.from('platos').insert([{ 
+                mesa: 'TIMBRE', 
+                preparacion: 'PANICO', 
+                timestamp: new Date().toISOString(), 
+                camarero: 'SISTEMA', 
+                icono: '🚨' 
+            }]);
+            dispararAvisoPushAlReloj("SALA", "¡TIMBRE!", "🚨 PÁNICO EN COCINA", "🚨", "TODOS");
+        } catch(e){}
+    }
+</script>
+</body>
+</html>
