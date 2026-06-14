@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fredware Pro - Acceso</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { background: radial-gradient(circle at top, #0f172a 0%, #020617 100%); color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        .hub { text-align: center; background: rgba(30, 41, 59, 0.5); padding: 40px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); max-width: 400px; width: 90%; }
+        .logo { width: 100px; margin-bottom: 20px; }
+        h1 { font-size: 28px; letter-spacing: 2px; margin-bottom: 30px; }
+        h1 span { color: #22d3ee; }
+        .btn-acceso { display: block; padding: 20px; margin: 15px 0; border-radius: 15px; text-decoration: none; font-weight: bold; font-size: 18px; transition: 0.3s; }
+        .btn-cocina { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; }
+        .btn-sala { background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%); color: white; }
+        .btn-instalar { background: #475569; color: white; border: none; padding: 12px; border-radius: 30px; margin-top: 20px; cursor: pointer; }
+        .btn-acceso:active, .btn-instalar:active { transform: scale(0.97); }
+    </style>
+</head>
+<body>
+    <div class="hub">
+        <svg class="logo" viewBox="0 0 512 512"><circle cx="256" cy="256" r="240" fill="#22d3ee"/><path d="M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z" fill="#020617"/><path d="M224 200h64v10h-64z" fill="#020617"/></svg>
+        <h1>FREDWARE<span>PRO</span></h1>
+        <a href="./cocina.html" class="btn-acceso btn-cocina">👨‍🍳 ENTRAR A COCINA</a>
+        <a href="./sala.html" class="btn-acceso btn-sala">🛎️ ENTRAR A SALA</a>
+        <button id="installBtn" class="btn-instalar" style="display:none;">📲 Instalar App</button>
+    </div>
+    <script>
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').style.display = 'block';
+        });
+        document.getElementById('installBtn').addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+            }
+        });
+        // REGISTRO DEL SERVICE WORKER
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrado', reg))
+                    .catch(err => console.error('Error al registrar SW:', err));
+            });
+        }
+    </script>
+</body>
+</html>
