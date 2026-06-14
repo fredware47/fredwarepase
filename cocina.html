@@ -189,9 +189,8 @@
         }
     }
 
+    // Función de pánico SIN confirmación
     async function darPorElSaco() {
-        const confirmar = confirm("🚨 ¿Realmente deseas enviar ALARMA DE PÁNICO a todos los camareros?");
-        if (!confirmar) return;
         if (sendingLock) return;
         sendingLock = true;
         window.Fredware.playAlarmaPanico();
@@ -201,7 +200,7 @@
                 await supabase.from('platos').insert([{ mesa: 'TIMBRE', preparacion: 'PANICO', timestamp: new Date().toISOString(), camarero: 'SISTEMA', icono: '🚨' }]);
                 await window.Fredware.sendPushNotification({ zona: "SALA", mesa: "TIMBRE", tipoPlato: "🚨 PÁNICO EN COCINA", emoji: "🚨", nombreCamarero: "TODOS" });
                 window.Fredware.showToast("🚨 Alarma de pánico enviada", "error");
-            } catch(e) {}
+            } catch(e) { console.error(e); }
         } else {
             await window.Fredware.addPendingAction({ type: "INSERT_PLATO", data: { mesa: 'TIMBRE', preparacion: 'PANICO', timestamp: new Date().toISOString(), camarero: 'SISTEMA', icono: '🚨' } });
         }
