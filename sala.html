@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fredware Pase - Recepción Sala</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; padding: 15px; transition: background-color 0.3s; }
+        @media (prefers-color-scheme: light) {
+            body { background-color: #f1f5f9; color: #0f172a; }
+            .cabecero-pro, .tarjeta-plato { background: #ffffff; border-color: #cbd5e1; }
+        }
+        .cabecero-pro { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; background: #1e293b; padding: 15px; border-radius: 16px; border: 1px solid #334155; }
+        .marca-contenedor { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .logo-svg { width: 32px; height: 32px; }
+        .marcador-conexion { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; background: #334155; }
+        .estado-buscando { background: #1e3a8a; color: #93c5fd; animation: pulse 1s infinite; }
+        .estado-error { background: #991b1b; color: #fca5a5; }
+        .grid-alertas { display: flex; flex-direction: column; gap: 15px; }
+        .grupo-mesa { border: 1px solid #334155; border-radius: 16px; background: #1e293b; overflow: hidden; }
+        .cabecera-mesa { background: #0f172a; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-weight: bold; border-bottom: 1px solid #334155; }
+        .numero-mesa-grande { font-size: 24px; font-family: monospace; }
+        .platos-container { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+        .tarjeta-plato { background: #1e293b; border: 1px solid #475569; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        .tarjeta-plato.antiguo { border-left: 6px solid #f97316; background: #2d1f1a; }
+        .info-plato { flex: 1; }
+        .camarero-tag { font-size: 12px; color: #34d399; }
+        .tipo-preparacion { font-weight: bold; }
+        .btn-retirar { background: #ef4444; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.05s; }
+        .btn-retirar:active { transform: scale(0.95); }
+        .pizarra-vaciva { text-align: center; padding: 40px; color: #64748b; border: 2px dashed #334155; border-radius: 16px; }
+        .btn-audio, .btn-silenciar { background: #10b981; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .controles-sala { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } }
+    </style>
+</head>
+<body>
+<div class="cabecero-pro">
+    <div class="marca-contenedor">
+        <svg class="logo-svg" viewBox="0 0 512 512"><circle cx="256" cy="256" r="240" fill="#38bdf8"/><path d="M160 360h192v20H160zm16-40h160c8-25 24-58 24-91 0-41-24-66-63-66h-16.5c-38.3 0-63.3 25-63.3 66 0 33 16 66 24.8 91z" fill="#0f172a"/><path d="M224 200h64v10h-64z" fill="#0f172a"/></svg>
+        <h1>FREDWARE <span>PASE</span></h1>
+    </div>
+    <div id="marcador-estado" class="marcador-conexion">⏳ Conectando...</div>
+    <div class="controles-sala">
+        <button id="btn-audio" class="btn-audio">🔊 Activar Altavoz</button>
+        <button id="btn-silenciar" class="btn-silenciar">🔇 Silenciar temporal</button>
+    </div>
+</div>
+<div id="pizarra-comandas" class="grid-alertas"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script src="shared.js"></script>
+<script>
+    let platos = [];
+    let gruposExpandidos = new Set();
+    let silenciado = false;
+    let subscription = null;
+
+    const estadoSpan = document.getElementById('marcador-estado');
+    const contenedor = document.getElementById('pizarra-comandas');
+
+    function actualizarEstado(texto, clase) {
+        estadoSpan.innerText = texto;
+        estadoSpan.className = "marcador-conexion " + clase;
+    }
+
+    let miZona = "SALA";
+    async function registrarDispositivo() {
+        let zonaGuardada = localStorage.getItem("fredware_zona_dispositivo");
+        if (!zonaGuardada) {
+            zonaGuardada = prompt("¿En qué zona estás?\nOpciones: BARRA, SALON, TERRAZA, APOYO", "SALON");
+            if (!zonaGuardada) zonaGuardada = "SALON";
+            localStorage.setItem("fredware_zona_dispositivo", zonaGuardada);
+        }
+        miZona = zonaGuardada.toUpperCase();
+        await window.Fredware.initOneSignal({ zona: miZona });
+        actualizarEstado(`🟢 Conectado como ${miZona}`, "");
+    }
+
+    function renderizar() {
+        if (!contenedor) return;
+        if (platos.length === 0) {
+            contenedor.innerHTML = '<div class="pizarra-vaciva">🍽️ Pase limpio. Esperando comandas...</div>';
+            return;
+        }
+        const grupos = new Map();
+        platos.forEach(plato => {
+            if (!grupos.has(plato.mesa)) grupos.set(plato.mesa, []);
+            grupos.get(plato.mesa).push(plato);
+        });
+        let html = "";
+        for (let [mesa, lista] of grupos.entries()) {
+            const expandido = gruposExpandidos.has(mesa);
+            html += `<div class="grupo-mesa">
+                        <div class="cabecera-mesa" data-mesa="${mesa}">
+                            <span class="numero-mesa-grande">🍽️ Mesa ${mesa}</span>
+                            <span>${expandido ? "▼" : "▶"}</span>
+                        </div>
+                        <div class="platos-container" id="grupo-${mesa}" style="display: ${expandido ? "flex" : "none"};">`;
+            lista.forEach(plato => {
+                const esAntiguo = (Date.now() - new Date(plato.timestamp).getTime()) > 5 * 60 * 1000;
+                html += `<div class="tarjeta-plato ${esAntiguo ? 'antiguo' : ''}" data-id="${plato.id}">
+                            <div class="info-plato">
+                                <div class="camarero-tag">🏃‍♂️ ${plato.camarero || '?'}</div>
+                                <div class="tipo-preparacion">${plato.icono || '🍽️'} ${plato.preparacion}</div>
+                                <div class="tiempo">${new Date(plato.timestamp).toLocaleTimeString()}</div>
+                            </div>
+                            <button class="btn-retirar" data-id="${plato.id}">👋 Servido</button>
+                        </div>`;
+            });
+            html += `</div></div>`;
+        }
+        contenedor.innerHTML = html;
+
+        document.querySelectorAll('.cabecera-mesa').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const mesa = header.getAttribute('data-mesa');
+                const container = document.getElementById(`grupo-${mesa}`);
+                if (container.style.display === 'none') {
+                    container.style.display = 'flex';
+                    gruposExpandidos.add(mesa);
+                } else {
+                    container.style.display = 'none';
+                    gruposExpandidos.delete(mesa);
+                }
+            });
+        });
+        document.querySelectorAll('.btn-retirar').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const plato = platos.find(p => p.id == id);
+                if (!plato) return;
+                const confirmar = confirm(`¿Retirar ${plato.preparacion} de mesa ${plato.mesa}?`);
+                if (!confirmar) return;
+                await retirarPlato(id, plato);
+            });
+        });
+    }
+
+    async function retirarPlato(id, platoInfo) {
+        const supabase = window.Fredware.supabaseClient();
+        if (!supabase) {
+            await window.Fredware.addPendingAction({ type: "DELETE_PLATO", id });
+            platos = platos.filter(p => p.id != id);
+            renderizar();
+            window.Fredware.showToast("📡 Guardado localmente para retirar", "info");
+            return;
+        }
+        try {
+            const { error } = await supabase.from('platos').delete().eq('id', id);
+            if (error) throw error;
+            await window.Fredware.addLog({ action: "retirar", mesa: platoInfo.mesa, preparacion: platoInfo.preparacion, camarero: platoInfo.camarero });
+            window.Fredware.showToast(`✅ Plato de mesa ${platoInfo.mesa} retirado`, "success");
+            platos = platos.filter(p => p.id != id);
+            renderizar();
+        } catch (err) {
+            console.error(err);
+            window.Fredware.showToast("❌ Error al retirar, se reintentará", "error");
+            await window.Fredware.addPendingAction({ type: "DELETE_PLATO", id });
+        }
+    }
+
+    function iniciarRealtime() {
+        const supabase = window.Fredware.supabaseClient();
+        if (!supabase) return;
+        if (subscription) subscription.unsubscribe();
+        subscription = supabase
+            .channel('platos-changes')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'platos' }, (payload) => {
+                const nuevo = payload.new;
+                if (nuevo.mesa === 'TIMBRE') {
+                    if (!silenciado) window.Fredware.playAlarmaPanico();
+                    window.Fredware.showToast("🚨 ALARMA DE COCINA", "error");
+                    document.body.classList.add('ataque-saco');
+                    setTimeout(() => document.body.classList.remove('ataque-saco'), 300);
+                    return;
+                }
+                if (!silenciado) window.Fredware.playPlatoSound(nuevo.preparacion);
+                platos.unshift(nuevo);
+                renderizar();
+                window.Fredware.showToast(`🍽️ Nuevo pedido: Mesa ${nuevo.mesa} - ${nuevo.preparacion}`, "info");
+            })
+            .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'platos' }, (payload) => {
+                const idEliminado = payload.old.id;
+                platos = platos.filter(p => p.id != idEliminado);
+                renderizar();
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') actualizarEstado("🟢 En línea · Tiempo real", "");
+                else actualizarEstado("🔄 Reconectando...", "estado-buscando");
+            });
+    }
+
+    const btnSilenciar = document.getElementById('btn-silenciar');
+    btnSilenciar.addEventListener('click', () => {
+        silenciado = !silenciado;
+        window.Fredware.setMuted(silenciado);
+        btnSilenciar.innerText = silenciado ? "🔊 Activar sonido" : "🔇 Silenciar temporal";
+        window.Fredware.showToast(silenciado ? "Sonido desactivado" : "Sonido activado", "info");
+    });
+
+    document.getElementById('btn-audio').addEventListener('click', () => {
+        window.Fredware.unlockAudio();
+    });
+
+    async function cargarInicial() {
+        const supabase = window.Fredware.supabaseClient();
+        if (!supabase) return;
+        const { data, error } = await supabase.from('platos').select('*').order('timestamp', { ascending: false });
+        if (!error && data) {
+            platos = data.filter(p => p.mesa !== 'TIMBRE');
+            renderizar();
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await window.Fredware.initSupabase();
+        await registrarDispositivo();
+        await cargarInicial();
+        iniciarRealtime();
+        setInterval(() => window.Fredware.processOfflineQueue(), 10000);
+        const unlockOnce = () => {
+            window.Fredware.unlockAudio();
+            document.removeEventListener('click', unlockOnce);
+            document.removeEventListener('touchstart', unlockOnce);
+        };
+        document.addEventListener('click', unlockOnce);
+        document.addEventListener('touchstart', unlockOnce);
+    });
+</script>
+<script>
+    // REGISTRO DEL SERVICE WORKER
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registrado en sala', reg))
+                .catch(err => console.error('Error SW sala:', err));
+        });
+    }
+</script>
+</body>
+</html>
