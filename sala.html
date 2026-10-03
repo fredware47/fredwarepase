@@ -46,35 +46,16 @@
         @keyframes parpadeo { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
 
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      setTimeout(() => {
-        window.OneSignalDeferred.push(async function(OneSignal) {
-          try {
-            await OneSignal.init({
-              appId: "391506e2-682c-4564-b726-9a9f366fdde8",
-              allowLocalhostAsSecureOrigin: true 
-            });
-            await OneSignal.Notifications.requestPermission();
-          } catch(e) { console.warn(e); }
-        });
-      }, 500);
-    </script>
-
     <script>
         let platosEnPase = [];
         let audioContext = null;
         let audioUnlocked = false;
         
-        // 🔊 AUDIO INDUSTRIAL DE MÁXIMA POTENCIA (Square + Sawtooth a 1.0)
+        // 🔊 AUDIO INDUSTRIAL DE MÁXIMA POTENCIA
         function sonarTimbrePaseFuerte() {
             if (!audioContext || !audioUnlocked) return;
             try {
-                // Golpe agudo inicial con onda cuadrada (rompe el barullo)
                 tocarFrecuenciaMetálica(1400, 'square', 0.15, 0.9);
-                
-                // Segundo golpe ruidoso con onda diente de sierra al 100% de volumen
                 setTimeout(() => {
                     tocarFrecuenciaMetálica(1100, 'sawtooth', 0.35, 1.0); 
                 }, 90);
@@ -88,15 +69,12 @@
                 let gain = audioContext.createGain();
                 osc.connect(gain);
                 gain.connect(audioContext.destination);
-                
                 osc.type = 'sawtooth'; 
                 osc.frequency.setValueAtTime(500, audioContext.currentTime);
                 osc.frequency.linearRampToValueAtTime(950, audioContext.currentTime + 0.2);
                 osc.frequency.linearRampToValueAtTime(500, audioContext.currentTime + 0.4);
-                
                 gain.gain.setValueAtTime(0.8, audioContext.currentTime); 
                 gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
-                
                 osc.start();
                 osc.stop(audioContext.currentTime + 0.5);
             } catch(e){}
@@ -107,13 +85,10 @@
             let gain = audioContext.createGain();
             osc.connect(gain);
             gain.connect(audioContext.destination);
-            
             osc.type = tipoOnda; 
             osc.frequency.setValueAtTime(frec, audioContext.currentTime);
-            
             gain.gain.setValueAtTime(vol, audioContext.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duracion);
-            
             osc.start();
             osc.stop(audioContext.currentTime + duracion);
         }
