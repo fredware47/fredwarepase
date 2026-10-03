@@ -45,17 +45,14 @@
                 document.getElementById('txt-mesa').innerText = "MESA " + mesaActual;
             }
         }
-
         function borrarPantalla() {
             mesaActual = "";
             document.getElementById('txt-mesa').innerText = "---";
         }
-
         function borrarUltimo() {
             mesaActual = mesaActual.slice(0, -1);
             document.getElementById('txt-mesa').innerText = mesaActual.length > 0 ? "MESA " + mesaActual : "---";
         }
-
         function abrirConfiguracion() {
             document.getElementById('cfg-cam1').value = camarerosTurno[0] || "";
             document.getElementById('cfg-cam2').value = camarerosTurno[1] || "";
@@ -63,20 +60,16 @@
             document.getElementById('cfg-cam4').value = camarerosTurno[3] || "";
             document.getElementById('modal-personal').style.display = "flex";
         }
-
         function guardarConfiguracion() {
             const c1 = document.getElementById('cfg-cam1').value.trim().toUpperCase();
             const c2 = document.getElementById('cfg-cam2').value.trim().toUpperCase();
             const c3 = document.getElementById('cfg-cam3').value.trim().toUpperCase();
             const c4 = document.getElementById('cfg-cam4').value.trim().toUpperCase();
-            
             camarerosTurno = [c1, c2, c3, c4];
             localStorage.setItem('fredware_personal_servicio', JSON.stringify(camarerosTurno));
-            
             actualizarDesplegableCocina();
             document.getElementById('modal-personal').style.display = "none";
         }
-
         function actualizarDesplegableCocina() {
             const select = document.getElementById('sel-camarero');
             if(select) {
@@ -90,7 +83,6 @@
                 });
             }
         }
-
         document.addEventListener("DOMContentLoaded", () => {
             const guardados = localStorage.getItem('fredware_personal_servicio');
             if (guardados) {
@@ -169,8 +161,8 @@
     const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
     const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw"; 
     
-    // 🔑 TU TOPIC SECRETO DE NTFY (cámbialo por el tuyo, uno largo y aleatorio)
-    const NTFY_TOPIC = "fredware-pase-7k2n9x4q"; // ← CAMBIA ESTO
+    // 🔑 TOPIC DE NTFY CONFIGURADO
+    const NTFY_TOPIC = "fredpase1579";
     
     window.dbCliente = null;
     try {
@@ -178,16 +170,15 @@
         if (libSupabase) window.dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     } catch(e) { console.error(e); }
 
-    // 🚀 ENVÍO A NTFY: llega al móvil de sala Y al reloj (vía espejo del iPhone/Wear OS)
     async function dispararAvisoPushAlReloj(codigoZona, mesa, tipoPlato, emoji, nombreCamarero) {
         try {
             await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
                 method: "POST",
                 headers: {
                     "Title": "Fredware Pase 🛎️",
-                    "Priority": "urgent",          // 5 = urgente, salta modo silencio
+                    "Priority": "urgent",
                     "Tags": "bell,kitchen",
-                    "Click": location.origin + "/sala.html" // al tocar, abre la sala
+                    "Click": location.origin + "/sala.html"
                 },
                 body: `🏃 ${nombreCamarero} → ${emoji} Mesa ${mesa}: ${tipoPlato} listo!`
             });
@@ -230,14 +221,13 @@
                 icono: '🚨' 
             }]);
             
-            // 📢 Timbre de pánico por ntfy con prioridad máxima y sonido de sirena
             await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
                 method: "POST",
                 headers: {
                     "Title": "🚨 PÁNICO EN COCINA",
                     "Priority": "urgent",
                     "Tags": "rotating_light,warning",
-                    "X-Sound": "siren"   // iOS/Android reproducen sonido de sirena
+                    "X-Sound": "siren"
                 },
                 body: "¡TIMBRE DE COCINA! Todos a sala"
             });
