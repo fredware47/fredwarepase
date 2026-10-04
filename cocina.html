@@ -26,11 +26,16 @@
         .btn-dar-saco { background: #ef4444; color: #ffffff; font-size: 18px; font-weight: 900; border: 3px solid #dc2626; padding: 18px; border-radius: 12px; cursor: pointer; margin-top: 15px; text-align: center; box-shadow: 0 6px 0 #991b1b; transition: all 0.1s; text-transform: uppercase; letter-spacing: 1px;}
         .btn-dar-saco:active { transform: translateY(4px); box-shadow: 0 2px 0 #991b1b; background: #b91c1c; }
         .modal-config { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
-        .modal-content { background: #1e293b; border: 2px solid #475569; padding: 20px; border-radius: 16px; max-width: 400px; width: 100%; }
+        .modal-content { background: #1e293b; border: 2px solid #475569; padding: 20px; border-radius: 16px; max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; }
         .modal-content h3 { color: #34d399; margin-bottom: 15px; text-align: center; font-size: 18px; text-transform: uppercase; }
         .modal-content label { display: block; margin-top: 10px; font-size: 13px; color: #94a3b8; font-weight: bold; }
         .modal-content input { width: 100%; padding: 12px; margin-top: 5px; background: #020617; border: 1px solid #475569; color: white; border-radius: 6px; font-size: 16px; font-weight: bold; text-transform: uppercase; }
         .btn-guardar-config { background: #10b981; color: white; border: none; width: 100%; padding: 14px; margin-top: 20px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .seccion-topicos { margin-top: 20px; padding-top: 15px; border-top: 1px solid #334155; }
+        .seccion-topicos h4 { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .topic-item { display: flex; justify-content: space-between; align-items: center; background: #020617; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+        .topic-item .zona { color: #38bdf8; font-weight: bold; }
+        .topic-item .topic { color: #94a3b8; font-family: monospace; font-size: 12px; user-select: all; }
         @media (max-width: 650px) { .container { grid-template-columns: 1fr; } }
     </style>
 
@@ -58,6 +63,17 @@
             document.getElementById('cfg-cam2').value = camarerosTurno[1] || "";
             document.getElementById('cfg-cam3').value = camarerosTurno[2] || "";
             document.getElementById('cfg-cam4').value = camarerosTurno[3] || "";
+            // Rellenar la lista de topics
+            const lista = document.getElementById('lista-topicos');
+            if (lista) {
+                lista.innerHTML = "";
+                zonasMapeadas.forEach(zona => {
+                    const div = document.createElement('div');
+                    div.className = 'topic-item';
+                    div.innerHTML = `<span class="zona">${zona}</span><span class="topic">${NTFY_BASE}-${zona.toLowerCase()}</span>`;
+                    lista.appendChild(div);
+                });
+            }
             document.getElementById('modal-personal').style.display = "flex";
         }
         function guardarConfiguracion() {
@@ -152,6 +168,11 @@
         <label>Asignar a TERRAZA:</label><input type="text" id="cfg-cam3" placeholder="Nombre en Terraza">
         <label>Asignar a APOYO:</label><input type="text" id="cfg-cam4" placeholder="Nombre en Apoyo">
         <button class="btn-guardar-config" onclick="guardarConfiguracion()">APLICAR CAMBIOS</button>
+
+        <div class="seccion-topicos">
+            <h4>Topics a los que suscribir cada móvil</h4>
+            <div id="lista-topicos"></div>
+        </div>
     </div>
 </div>
 
@@ -161,8 +182,16 @@
     const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
     const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw"; 
     
-    // TOPIC DE NTFY
-    const NTFY_TOPIC = "fredpase1579";
+    // TOPIC BASE: cada zona tendrá NTFY_BASE + "-" + zona_en_minusculas
+    const NTFY_BASE = "fredpase1579";
+    
+    // Topics por zona
+    const NTFY_TOPICS = {
+        BARRA:   NTFY_BASE + "-barra",
+        SALON:   NTFY_BASE + "-salon",
+        TERRAZA: NTFY_BASE + "-terraza",
+        APOYO:   NTFY_BASE + "-apoyo"
+    };
     
     window.dbCliente = null;
     try {
@@ -170,22 +199,46 @@
         if (libSupabase) window.dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     } catch(e) { console.error(e); }
 
-    // Envía aviso a ntfy (SIN emojis en headers, solo en el body)
-    async function dispararAvisoPushAlReloj(codigoZona, mesa, tipoPlato, emoji, nombreCamarero) {
+    // Envía un mensaje a un topic concreto (SIN emojis en headers)
+    async function enviarATopic(topic, titulo, cuerpo, extras = {}) {
         try {
-            await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+            const headers = {
+                "Title": titulo,
+                "Priority": "urgent",
+                "Tags": "bell",
+                "Click": location.origin + location.pathname.replace("cocina.html", "sala.html")
+            };
+            Object.assign(headers, extras);
+            
+            const resp = await fetch(`https://ntfy.sh/${topic}`, {
                 method: "POST",
-                headers: {
-                    "Title": "Fredware Pase - Mesa " + mesa,
-                    "Priority": "urgent",
-                    "Tags": "bell",
-                    "Click": location.origin + location.pathname.replace("cocina.html", "sala.html")
-                },
-                body: `🏃 ${nombreCamarero} -> ${emoji} Mesa ${mesa}: ${tipoPlato} listo!`
+                headers: headers,
+                body: cuerpo
             });
-        } catch (e) { 
-            console.error("Error al enviar a ntfy:", e); 
+            if (!resp.ok) console.warn("ntfy respondió con estado", resp.status, "para topic", topic);
+            return true;
+        } catch (e) {
+            console.error("Error ntfy para topic " + topic + ":", e);
+            return false;
         }
+    }
+
+    // Decide a qué topics enviar según la zona elegida
+    async function dispararAvisoPushAlReloj(codigoZona, mesa, tipoPlato, emoji, nombreCamarero) {
+        const cuerpo = `🏃 ${nombreCamarero} -> ${emoji} Mesa ${mesa}: ${tipoPlato} listo!`;
+        const titulo = `Mesa ${mesa} - ${tipoPlato}`;
+        
+        let topicsAEnviar;
+        if (codigoZona === "SALA" || !NTFY_TOPICS[codigoZona]) {
+            // General: enviar a todos los topics
+            topicsAEnviar = Object.values(NTFY_TOPICS);
+        } else {
+            // Solo a la zona del camarero
+            topicsAEnviar = [NTFY_TOPICS[codigoZona]];
+        }
+        
+        // Enviar en paralelo
+        await Promise.all(topicsAEnviar.map(t => enviarATopic(t, titulo, cuerpo)));
     }
 
     async function despacharPlato(tipo, icono) {
@@ -215,21 +268,19 @@
     }
 
     async function darPorElSaco() {
-        // Primero enviamos a ntfy, pase lo que pase
-        try {
-            await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-                method: "POST",
-                headers: {
-                    "Title": "PANICO EN COCINA",
-                    "Priority": "urgent",
-                    "Tags": "rotating_light,warning",
-                    "X-Sound": "siren"
-                },
-                body: "🚨 ¡TIMBRE DE COCINA! Todos a sala"
-            });
-        } catch(e){ console.error("ntfy pánico falló:", e); }
+        // Enviar a TODOS los topics con prioridad máxima y sirena
+        const titulo = "PANICO EN COCINA";
+        const cuerpo = "🚨 ¡TIMBRE DE COCINA! Todos a sala";
+        const extras = { 
+            "Tags": "rotating_light,warning",
+            "X-Sound": "siren"
+        };
+        
+        await Promise.all(
+            Object.values(NTFY_TOPICS).map(t => enviarATopic(t, titulo, cuerpo, extras))
+        );
 
-        // Luego intentamos guardar en Supabase (opcional)
+        // Guardar en Supabase (opcional)
         if (!window.dbCliente) return;
         try {
             await window.dbCliente.from('platos').insert([{ 
