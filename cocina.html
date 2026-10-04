@@ -73,12 +73,12 @@
         function actualizarDesplegableCocina() {
             const select = document.getElementById('sel-camarero');
             if(select) {
-                select.innerHTML = '<option value="SALA">👤 GENERAL / TODA LA SALA</option>';
+                select.innerHTML = '<option value="SALA">GENERAL / TODA LA SALA</option>';
                 camarerosTurno.forEach((nombre, index) => {
                     if (nombre && nombre.trim() !== "") {
                         const limpio = nombre.trim().toUpperCase();
                         const zonaAsignada = zonasMapeadas[index];
-                        select.innerHTML += `<option value="${zonaAsignada}">🏃‍♂️ ${limpio} (${zonaAsignada})</option>`;
+                        select.innerHTML += `<option value="${zonaAsignada}">${limpio} (${zonaAsignada})</option>`;
                     }
                 });
             }
@@ -100,12 +100,12 @@
 <body>
 
 <div style="text-align: center; margin-bottom: 15px;">
-    <h1>👨‍🍳 FREDWARE KITCHEN ALERT · PASE</h1>
+    <h1>FREDWARE KITCHEN ALERT · PASE</h1>
 </div>
 
 <div class="container">
     <div class="panel">
-        <h2>📌 Datos del Pase</h2>
+        <h2>Datos del Pase</h2>
         <div class="pantalla-mesa" id="txt-mesa">---</div>
         <div class="teclado-grid">
             <button class="btn-num" onclick="marcarNumero('1')">1</button>
@@ -124,14 +124,14 @@
 
         <div class="zona-camarero">
             <select class="selector-camarero" id="sel-camarero">
-                <option value="SALA">👤 GENERAL / TODA LA SALA</option>
+                <option value="SALA">GENERAL / TODA LA SALA</option>
             </select>
             <button class="btn-config" onclick="abrirConfiguracion()">⚙️</button>
         </div>
     </div>
 
     <div class="panel">
-        <h2>🍽️ Despachar a Sala</h2>
+        <h2>Despachar a Sala</h2>
         <div class="opciones-grid">
             <button class="btn-opcion opt-entrante" onclick="despacharPlato('ENTRANTE', '🥣')">🥣 1. ENTRANTES <span>➔</span></button>
             <button class="btn-opcion opt-segundo" onclick="despacharPlato('SEGUNDO', '🥩')">🥩 2. SEGUNDOS <span>➔</span></button>
@@ -146,12 +146,12 @@
 
 <div class="modal-config" id="modal-personal">
     <div class="modal-content">
-        <h3>⚙️ Personal del Servicio</h3>
+        <h3>Personal del Servicio</h3>
         <label>Asignar a BARRA:</label><input type="text" id="cfg-cam1" placeholder="Nombre en Barra">
         <label>Asignar a SALÓN:</label><input type="text" id="cfg-cam2" placeholder="Nombre en Salón">
         <label>Asignar a TERRAZA:</label><input type="text" id="cfg-cam3" placeholder="Nombre en Terraza">
         <label>Asignar a APOYO:</label><input type="text" id="cfg-cam4" placeholder="Nombre en Apoyo">
-        <button class="btn-guardar-config" onclick="guardarConfiguracion()">💾 APLICAR CAMBIOS</button>
+        <button class="btn-guardar-config" onclick="guardarConfiguracion()">APLICAR CAMBIOS</button>
     </div>
 </div>
 
@@ -161,7 +161,7 @@
     const SUPABASE_URL = "https://abwcjcohomifcilquknf.supabase.co";
     const SUPABASE_KEY = "sb_publishable_5M0b1VwXkV9nyJDUbnmDew_YLTFIlSw"; 
     
-    // 🔑 TOPIC DE NTFY CONFIGURADO
+    // TOPIC DE NTFY
     const NTFY_TOPIC = "fredpase1579";
     
     window.dbCliente = null;
@@ -170,17 +170,18 @@
         if (libSupabase) window.dbCliente = libSupabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     } catch(e) { console.error(e); }
 
+    // Envía aviso a ntfy (SIN emojis en headers, solo en el body)
     async function dispararAvisoPushAlReloj(codigoZona, mesa, tipoPlato, emoji, nombreCamarero) {
         try {
             await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
                 method: "POST",
                 headers: {
-                    "Title": "Fredware Pase 🛎️",
+                    "Title": "Fredware Pase - Mesa " + mesa,
                     "Priority": "urgent",
-                    "Tags": "bell,kitchen",
-                    "Click": location.origin + "/sala.html"
+                    "Tags": "bell",
+                    "Click": location.origin + location.pathname.replace("cocina.html", "sala.html")
                 },
-                body: `🏃 ${nombreCamarero} → ${emoji} Mesa ${mesa}: ${tipoPlato} listo!`
+                body: `🏃 ${nombreCamarero} -> ${emoji} Mesa ${mesa}: ${tipoPlato} listo!`
             });
         } catch (e) { 
             console.error("Error al enviar a ntfy:", e); 
@@ -188,29 +189,47 @@
     }
 
     async function despacharPlato(tipo, icono) {
-        if (!mesaActual || mesaActual === "") { alert("⚠️ Fred, marca primero la mesa."); return; }
+        if (!mesaActual || mesaActual === "") { alert("Marca primero la mesa."); return; }
         const selector = document.getElementById('sel-camarero');
         const zonaElegidaValue = selector.value; 
         
-        const nombreCamarero = selector.options[selector.selectedIndex].text.replace('🏃‍♂️ ', '').split(' (')[0];
+        const nombreCamarero = selector.options[selector.selectedIndex].text.split(' (')[0];
         const mesaAEnviar = String(mesaActual).trim(); 
         borrarPantalla(); 
 
+        // Enviamos a ntfy SIEMPRE, aunque Supabase falle
+        dispararAvisoPushAlReloj(zonaElegidaValue, mesaAEnviar, tipo, icono, nombreCamarero);
+
+        // Luego intentamos guardar en Supabase (para la pizarra de sala)
         if (!window.dbCliente) return;
         try {
             const { error } = await window.dbCliente.from('platos').insert([{
                 mesa: mesaAEnviar,
-                camarero: String(selector.options[selector.selectedIndex].text.replace('🏃‍♂️ ', '')).trim(),
+                camarero: String(nombreCamarero).trim(),
                 preparacion: String(tipo).trim(),
                 icono: String(icono).trim(),
                 timestamp: new Date().toISOString()
             }]);
-            
-            if (!error) dispararAvisoPushAlReloj(zonaElegidaValue, mesaAEnviar, tipo, icono, nombreCamarero);
+            if (error) console.warn("Supabase no guardó el plato:", error);
         } catch(e) { console.error(e); }
     }
 
     async function darPorElSaco() {
+        // Primero enviamos a ntfy, pase lo que pase
+        try {
+            await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+                method: "POST",
+                headers: {
+                    "Title": "PANICO EN COCINA",
+                    "Priority": "urgent",
+                    "Tags": "rotating_light,warning",
+                    "X-Sound": "siren"
+                },
+                body: "🚨 ¡TIMBRE DE COCINA! Todos a sala"
+            });
+        } catch(e){ console.error("ntfy pánico falló:", e); }
+
+        // Luego intentamos guardar en Supabase (opcional)
         if (!window.dbCliente) return;
         try {
             await window.dbCliente.from('platos').insert([{ 
@@ -220,18 +239,7 @@
                 camarero: 'SISTEMA', 
                 icono: '🚨' 
             }]);
-            
-            await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
-                method: "POST",
-                headers: {
-                    "Title": "🚨 PÁNICO EN COCINA",
-                    "Priority": "urgent",
-                    "Tags": "rotating_light,warning",
-                    "X-Sound": "siren"
-                },
-                body: "¡TIMBRE DE COCINA! Todos a sala"
-            });
-        } catch(e){ console.error(e); }
+        } catch(e){ console.error("Supabase pánico falló:", e); }
     }
 </script>
 </body>
